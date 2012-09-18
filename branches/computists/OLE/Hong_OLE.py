@@ -188,39 +188,6 @@ for i in range(len(aDirEntry)) :
 	hwFile.write(dirData+"\n\n")
 	if i == 6 :
 		getFIB(dirData)
-	
-
-#== get FIB Structure ==#
-
-def getFIB (Data):
-ruleChar_FIB = '8s16s5h10s8l436s'
-ruleName_FIB = ('Sig UID Revision Version ByteOrder SSZ SSSZ Reserved SecCount_SAT SecID_DirStart signature MiniSectorCutoff SecID_SSATStart SecCount_SSAT SecID_MATStart SecCount_MAT MAT')
-ntFIB = namedtuple('Header',ruleName_FIB)
-sFIB = ntHeader._make(unpack(ruleChar_FIB,Data[:))
-
-#======================================#
-
-#== get FIB Structure ==#
-
-def getFibBase (Data):
-ruleChar_FibBase = '5hhhlbbhhll"
-ruleName_FibBase = ('wIdent nFib unused lid pnNext opt1 nFibBack lkey envr opt2 reserved3 reserved4 reserved5 reserved6')
-ntFIB = namedtuple('Header',ruleName_FibBase)
-sFIB = ntHeader._make(unpack(ruleChar_FibBase,Data[:))
-
-#======================================#
-
-#== get FIB Structure ==#
-
-def getFIB (dirData):
-ruleChar_FIB = '8s16s5h10s8l436s'
-ruleName_FIB = ('Sig UID Revision Version ByteOrder SSZ SSSZ Reserved SecCount_SAT SecID_DirStart signature MiniSectorCutoff SecID_SSATStart SecCount_SSAT SecID_MATStart SecCount_MAT MAT')
-ntFIB = namedtuple('Header',ruleName_FIB)
-sFIB = ntHeader._make(unpack(ruleChar_FIB,dirData[:))
-
-#======================================#
-
-
 
 hwFile.close()	
 
