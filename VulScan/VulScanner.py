@@ -104,11 +104,10 @@ if __name__ == '__main__' :
     File = {}
     Init = Initialize( File )
     
+    Options = Init.GetOption()
+    
     try :
         File['logbuf'] += "[*] Vulnerability Scanner"
-        
-        Options = Init.GetOption()
-        
         if not Init.SetOption( File, Options ) :
             File['logbuf'] += "\n[Failure] SetOption()"
             exit(-1)

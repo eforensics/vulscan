@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import re, traceback
+import re, traceback, binascii
 
 
 # import private module
@@ -37,10 +37,11 @@ class OperateStream():
                 return False
         
         except TypeError :
-            return True
+            return False
         
         except :
             print traceback.format_exc()
+            return False
 
 
     def ExtractStream(self, stream, length):
@@ -124,11 +125,7 @@ class OperateStream():
         except :
             print traceback.format_exc()
         
-        print outElement
-        
         return outElement   
-        
-        
 
 
     def fltHTMLAscii(self, pBuf):
@@ -136,7 +133,7 @@ class OperateStream():
             HTMLAscii_Buf = ""
             Buffer = pBuf
             while True :          
-                SearchElement = re.search( '&#[0-9]{2,3};', Buffer)
+                SearchElement = re.search( '&#[0-9]{2,8};', Buffer )
                 
                 HTMLAscii_Buf += Buffer[:SearchElement.start()]
                 HTMLAscii_Buf += chr( int(SearchElement.group()[2:-1]) )
@@ -156,7 +153,8 @@ class OperateStream():
             tmpBuf = pBuf
             while True :
                 SearchElement = re.search( '#[0-9]{2,3}', tmpBuf )
-                tmpBuf = re.sub( SearchElement.group(), chr( int(SearchElement.group()[1:len( SearchElement.group() )]) ), tmpBuf )            
+                if int(SearchElement.group()[1:len( SearchElement.group() )]) < 256 :
+                    tmpBuf = re.sub( SearchElement.group(), chr( int(SearchElement.group()[1:len( SearchElement.group() )]) ), tmpBuf )            
         
             Ascii_Buf = tmpBuf
         
@@ -167,8 +165,6 @@ class OperateStream():
             print traceback.format_exc()
         
         return Ascii_Buf
-
-
 
 
 
@@ -221,54 +217,68 @@ class PDFSearch():
     
             # Second Type : "/JavaScript"
             Operation = OperateStream()
-            
-            pBuf = Operation.FilterObj( pBuf )
-            
-            print pBuf
-            
             streams = re.findall('obj\s{0,10}<<(.{0,100}?/Length\s([0-9]{1,8}).*?)>>[\s%]*?stream(.*?)endstream[^=]',pBuf,re.DOTALL)
+            if streams == [] :
+                pBuf = Operation.FilterObj(pBuf)
+                streams = re.findall('obj\s{0,10}<<(.{0,100}?/Length\s([0-9]{1,8}).*?)>>[\s%]*?stream(.*?)endstream[^=]',pBuf,re.DOTALL)
+    
+            
             for streamDict in streams :
                 Dict = streamDict[0]  
                 
                 if Dict.count('obj') > 0:
-                    Dict = Dict[Dict.rfind('obj'):] 
+                    Dict = Dict[Dict.rfind('obj'):]
                 
                 stream = Operation.ExtractStream( streamDict[2], int(streamDict[1]) )
                 if len(stream) < 0x10 :
                     continue
                 
-                # Filters : /FlateDecode, /ASCIIHexDecode, /ASCII85Decode, /LZWDecode, /RunLengthDecode
+#                Filters : /FlateDecode, /ASCIIHexDecode, /ASCII85Decode, /LZWDecode, /RunLengthDecode
                 Decode = DecodeControl()
                 if Dict.find('/FlateDecode') != -1 or Dict.find('/Fl') != -1:
-#                    print "FlateDecode"    
-                    streamContent = Decode.FlateDecode(stream)  
+                    streamContent = Decode.FlateDecode(File["fname"], stream)
+                    if streamContent == "" :
+                        ConvertData = ""
+                        for offset in range( len(stream) / 2 ) : 
+                            bData = stream[offset*2:offset*2+2]
+                            ConvertData += binascii.a2b_hex( bData )
+
+                        stream = ConvertData
+                        streamContent = Decode.FlateDecode(File["fname"], stream)  
             
                 elif Dict.find('/ASCII85Decode') != -1 :
                     try :
 #                        print "ASCII85Deocde"
-                        streamContent = Decode.ASCII85Decode(stream)
+                        streamContent = Decode.ASCII85Decode(File["fname"], stream)
                     except : 
 #                        print "ASCII85Decode2"
-                        streamContent = Decode.ASCII85Decode2(stream)
+                        streamContent = Decode.ASCII85Decode2(File["fname"], stream)
                             
                 elif Dict.find('/ASCIIHexDecode') != -1 :
 #                    print "ASCIIHexDecode"
-                    streamContent = Decode.ASCIIHexDecode(stream)
+                    streamContent = Decode.ASCIIHexDecode(File["fname"], stream)
                         
                 elif Dict.find('/RunLengthDecode') != -1 :
 #                    print "RunLengthDecode"
-                    streamContent = Decode.RunLengthDecode(stream)
+                    streamContent = Decode.RunLengthDecode(File["fname"], stream)
                         
                 elif Dict.find('/LZWDecode') != -1 :
 #                    print "LZWDecode"
-                    streamContent = Decode.LZWDecode(stream)
+                    streamContent = Decode.LZWDecode(File["fname"], stream)
                         
                 else:
 #                    print "No-Deocde"
                     streamContent = stream
                            
                 ElementList.append(streamContent)
-            
+
+#            Add Procedure
+            if streams == [] :
+                streams = re.findall('obj\s{0,10}<<(.{0,100}.*?)>>[\s%]*?stream(.*?)endstream[^=]',pBuf,re.DOTALL)
+                
+                for streamDict in streams :
+                    ElementList.append( streamDict[1] )
+                                
         except :
             print traceback.format_exc()
             return []
@@ -327,8 +337,15 @@ class PDFScan():
             Operation = OperateStream()
             unescapedBytes = []
             for element in Element :
+                if type(element) == type(None) :
+                        continue
+                
+#                print "Scan : %s" % File["fname"]
+                element = Operation.FilterObj(element)
                 if Operation.isJavaScript( element ) :
-#                    element = Operation.FilterObj(element)
+                    name = File["fname"] + "_" + hex( len(element) )
+                    FileControl.WriteFile(name, element)
+                    
                     UnEscapeData = Operation.Unescaping( element )
                     if UnEscapeData not in unescapedBytes :
                         unescapedBytes.append( UnEscapeData )
@@ -343,12 +360,16 @@ class PDFScan():
                     ElementData += "[%s : %s]\n" % (JS, CVENo[JS])
                 ElementData += element
             
-            File['logbuf'] += "\t[ Done ]"
+            
+            if Event == [] and Action == [] and ElementData == "" :
+                File['logbuf'] += "\t[ Done ]"
+            else :
+                File['logbuf'] += "\t[ Find ]"
             
             
             # Logging Suspicious Data 
             if Event != [] :
-                File['logbuf'] += "\n            Event : "
+                File['logbuf'] += "\n            Event  : "
                 for event in Event :
                     File['logbuf'] += event + " "
                 
@@ -364,7 +385,7 @@ class PDFScan():
                 File['logbuf'] += "\n        [-] %s\t<%s_Element.dat>" % (File["fname"],  File["fname"]) 
             
         except :
-            File['logbuf'] += "\t\t[ Error ]"
+            File['logbuf'] += "\t[ Error ]"
             print traceback.format_exc()
             return False
         

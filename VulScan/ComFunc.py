@@ -131,6 +131,7 @@ class FileControl():
             with open( fname, 'wb' ) as fp :
                 fp.write( Buf )
         except :
+            print fname
             print traceback.format_exc()
     
     @classmethod
@@ -145,34 +146,35 @@ class FileControl():
             
 
 class DecodeControl():
-    def FlateDecode(self, stream):
+    def FlateDecode(self, fname, stream):
         try :
             out = ""
             
             if ord( stream[0] ) == 13 and ord( stream[1] ) == 10 :      stream = stream[2:]
-            if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]
+            if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]          
             
-            FileControl.WriteFile("FlateDecode_%d.dump" % len(stream), stream)            
-            
-            out = zlib.decompress(stream)
-            if out != "" : 
-                return out 
+#            out = zlib.decompress(stream)
+#            if out != "" : 
+#                return out 
                         
             out = zlib.decompress(stream.strip("\r").strip("\n"))
             if out != "" :
                 return out
             
         except zlib.error :
-            print "[ZlibError] FlateDecode( 0x%02X 0x%02X )\n" % (ord(stream[0]), ord(stream[1]))
+            FileControl.WriteFile("%s_Zlib_0x%02X_0x%02X_%d.dump" % (fname, ord(stream[0]), ord(stream[1]), len(stream)), stream)
+            print "[ZlibError] FlateDecode( 0x%02X 0x%02X - Length : %d )\n" % (ord(stream[0]), ord(stream[1]), len(stream))   
             print traceback.format_exc()
+            return out
         
         except :
-            FileControl.WriteFile("FlateDecode_%d.dump" % len(stream), stream)
+            FileControl.WriteFile("%s_Except_0x%02X_0x%02X_%d.dump" % (fname, ord(stream[0]), ord(stream[1]), len(stream)), stream)
             print "[Unknown]  Error FlateDecode( )\n\t"
             print traceback.format_exc()
+            return out
         
         
-    def ASCII85Decode2(self, stream):
+    def ASCII85Decode2(self, fname, stream):
         n = b = 0
         out = ''
         for c in stream:
@@ -194,7 +196,7 @@ class DecodeControl():
         return out
 
     
-    def ASCII85Decode(self, stream):
+    def ASCII85Decode(self, fname, stream):
     # http://pyew.googlecode.com/hg-history/e984a67f8cf1a564b97187171c237da98ce5b255/plugins/pdf.py
         retval = ""
         group = []
@@ -246,11 +248,11 @@ class DecodeControl():
         return retval
 
     
-    def ASCIIHexDecode(self, stream):
+    def ASCIIHexDecode(self, fname, stream):
         return binascii.unhexlify(''.join([c for c in stream if c not in ' \t\n\r']).rstrip('>'))
     
     
-    def RunLengthDecode(self, stream):
+    def RunLengthDecode(self, fname, stream):
         f = cStringIO.StringIO(stream)
         decompressed = ''
         runLength = ord(f.read(1))
@@ -295,7 +297,7 @@ class DecodeControl():
         return clearBytes
     
     
-    def LZWDecode(self, stream):
+    def LZWDecode(self, fname, stream):
         return ''.join(LZWDecoder(cStringIO.StringIO(stream)).run())
 
 
