@@ -272,11 +272,6 @@ class MappedOLE():
         OutDirectory = Directory
         return OutDirectory
             
-    
-    
-    def MapFileHeader(self, File):
-        pass
-
 
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -384,6 +379,7 @@ class OLEScan():
                 return False
         except struct.error : 
             return False
+        
         except :
             print traceback.format_exc()
             
