@@ -60,6 +60,7 @@ class Initialize():
         Parser = optparse.OptionParser(usage='usage: %prog [-f|-d] file or folder\n')
         Parser.add_option('-f', '--file', help='< file name >')
         Parser.add_option('-d', '--directory', help='< directory >')
+        Parser.add_option('--delete', help='< Ext Name>')
         Parser.add_option('--log', help='< file name >')
         (options, args) = Parser.parse_args()
             
@@ -77,6 +78,9 @@ class Initialize():
             
             if Opt.file :
                 File['fpath'] = Opt.file
+            
+            if Opt.delete :
+                File['ExtName'] = Opt.delete
             
             if Opt.log : 
                 File['log'] = Opt.log
@@ -107,7 +111,6 @@ if __name__ == '__main__' :
     Options = Init.GetOption()
     
     try :
-        File['logbuf'] += "[*] Vulnerability Scanner"
         if not Init.SetOption( File, Options ) :
             File['logbuf'] += "\n[Failure] SetOption()"
             exit(-1)
@@ -123,6 +126,20 @@ if __name__ == '__main__' :
             File['logbuf'] += "\n[Failure] Set FileList"
             exit(-1)
         
+        
+        # Option : Delete Files 
+        if Options.delete :
+            for fname in flist :
+                fext = os.path.splitext( fname )
+                fdel = os.path.splitext( Options.delete )
+                
+                if fext[1] == fdel[1] :
+                    os.remove( fname )
+        
+            exit(0)
+        
+        
+        File['logbuf'] += "[*] Vulnerability Scanner"
         
         # Check File Format
         File['logbuf'] += "\n[*] File Format Checking"

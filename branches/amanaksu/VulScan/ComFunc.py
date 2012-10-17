@@ -97,6 +97,26 @@ class BufferControl():
             return OutBuf
         except :
             print traceback.format_exc() 
+            
+
+    @classmethod
+    def PrintBuffer(cls, File, pBuf, Position, Size):
+        try :
+            File['logbuf'] += "\n\t\t+" + "-" * 78 + "\n\t"
+            
+            Cnt = 0
+            pReadBuf = BufferControl.Read(pBuf, Position, Size)
+            for Byte in pReadBuf :
+                File['logbuf'] += "\t 0x%s" % binascii.b2a_hex(Byte)
+                Cnt += 1
+                if Cnt == 10 :
+                    File['logbuf'] += "\n\t"
+                    Cnt = 0 
+            
+            File['logbuf'] += "\n\t\t+" + "-" * 78 + "\n"
+            
+        except:
+            print traceback.format_exc()
     
     
     
