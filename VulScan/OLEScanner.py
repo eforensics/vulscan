@@ -6,7 +6,7 @@ import struct
 
 
 # import private module
-from ComFunc import BufferControl
+from ComFunc import BufferControl, FileControl
 from HWPScanner import HWP
 from OfficeScanner import Office
 
@@ -65,7 +65,7 @@ class OLEStruct():
         
         # Exception Checking
         if Header["NumSAT"] > 109 :   
-            File['logbuf'] += "\n    [Failure] Exist Extra SAT!!!"     
+            File['logbuf'] += "\n    [Failure] Exist Extra SAT!!! ( 0x%08X )" % Header["NumSAT"]     
             return False
           
         # Saving Need Data
@@ -264,7 +264,7 @@ class MappedOLE():
                     Directory[ mDirEntry[index] ] = binascii.b2a_hex( BufferControl.Read(DirData, Position, szDirEntry[index]))
             
                 Position += szDirEntry[index]
-                
+            
         except :
             print traceback.format_exc()
             return OutDirectory
@@ -272,7 +272,6 @@ class MappedOLE():
         OutDirectory = Directory
         return OutDirectory
             
-
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------#
 #    Header
@@ -373,7 +372,11 @@ class OLEScan():
     @classmethod
     def Check(cls, pBuf):
         try :
+            # Case1. 0xe011cfd0, 0xe11ab1a1L
             if BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L and BufferControl.ReadDword(pBuf, 0x4) == 0xe11ab1a1L :
+                return True
+            # Case2. 0xe011cfd0, 0x20203fa1
+            elif BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L :
                 return True
             else :
                 return False
