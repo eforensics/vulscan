@@ -99,27 +99,15 @@ class FTPServer():
             os.chdir( Dst )
             SrcList = Src.split("\\")
             
-            print "11111111111111111111111111111111111111"
-            
             for nextdir in SrcList :
                 MsgFTP = FTP.cwd(nextdir)
                 if MsgFTP.find("250") == -1 :
                     log += "Failure Change Directory\n"
-                    return False
+                    return False            
             
-            print "2222222222222222222222222222222222222"            
             
-            if FTP.pwd().find( Src ) == -1 :
-                print "PWD : ",
-                print FTP.pwd()
-                print "Src : ",
-                print Src
-                log += "Failure Change Directory\n"
-                return False
             
-            print "3333333333333333333333333333333333333"            
-            
-            if not self.DownloadFile(log) :
+            if not self.DownloadFile(FTP, log) :
                 return False
             
         except :
@@ -129,9 +117,46 @@ class FTPServer():
         return True
     
     
-    def DownloadFile(self, log):
+    def DownloadFile(self, FTP, log):
         try :
-            log += "Downloading\n"
+            # Check Target Directory By File Format
+            TargetName = ["PDF", "unknown", "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document"]
+            ExtDir = []
+            
+            DirList = FTP.nlst()
+            for DirName in DirList : 
+                for Target in TargetName :
+                    if DirName == Target :
+                        ExtDir.append( DirName )
+            
+            if ExtDir == [] :
+                log += "Folder is not Found\n"
+                return True
+            
+
+            SrcPath = FTP.pwd()
+            DstPath = os.getcwd()
+            for extDir in ExtDir :
+                # Move Src Directory ( in FTP Server )
+                srcpath = SrcPath + "/" + extDir
+                MsgFTP = FTP.cwd( srcpath )
+                if MsgFTP.find("250") == -1 :
+                    log += "Failure Change Directory ( %s )" % extDir
+            
+                # Move Dst Directory ( in Host PC )
+                dstpath = DstPath + "\\" + extDir
+                if not os.path.exists( dstpath ) : 
+                    os.mkdir( dstpath )
+                os.chdir( dstpath )
+                
+                # File Download ( From FTP Server To Host PC )
+                flist = FTP.nlst()
+                for fname in flist :
+                    MsgFTP = FTP.retnlines("RETN " + fname, open(fname, 'wb').write)
+                    if MsgFTP.find( "226" ) == -1 :
+                        log += "    %s ( %s )" % ( fname, MsgFTP )
+                        continue
+            
         except :
             print traceback.format_exc()
             return False
