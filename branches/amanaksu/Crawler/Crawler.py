@@ -110,6 +110,10 @@ class FTPServer():
             print "2222222222222222222222222222222222222"            
             
             if FTP.pwd().find( Src ) == -1 :
+                print "PWD : ",
+                print FTP.pwd()
+                print "Src : ",
+                print Src
                 log += "Failure Change Directory\n"
                 return False
             
