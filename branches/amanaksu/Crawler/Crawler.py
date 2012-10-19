@@ -152,7 +152,7 @@ class FTPServer():
                 # File Download ( From FTP Server To Host PC )
                 flist = FTP.nlst()
                 for fname in flist :
-                    MsgFTP = FTP.retnlines("RETN " + fname, open(fname, 'wb').write)
+                    MsgFTP = FTP.retrlines("RETN " + fname, open(fname, 'wb').write)
                     if MsgFTP.find( "226" ) == -1 :
                         log += "    %s ( %s )" % ( fname, MsgFTP )
                         continue
