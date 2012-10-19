@@ -105,8 +105,6 @@ class FTPServer():
                     log += "Failure Change Directory\n"
                     return False            
             
-            
-            
             if not self.DownloadFile(FTP, log) :
                 return False
             
@@ -144,10 +142,10 @@ class FTPServer():
                     log += "Failure Change Directory ( %s )" % extDir
             
                 # Move Dst Directory ( in Host PC )
-                dstpath = DstPath + "\\" + extDir
-                if not os.path.exists( dstpath ) : 
-                    os.mkdir( dstpath )
-                os.chdir( dstpath )
+#                dstpath = DstPath + "\\" + extDir
+#                if not os.path.exists( dstpath ) : 
+#                    os.mkdir( dstpath )
+#                os.chdir( dstpath )
                 
                 # File Download ( From FTP Server To Host PC )
                 flist = FTP.nlst()
@@ -252,18 +250,23 @@ if __name__ == '__main__' :
         NoneSupport = []
         
         main = Main()
-        flist = os.listdir( DstDir )
-        os.chdir( DstDir )
-        for fname in flist :
-            Format = main.CheckFormat(fname)
-            if Format == "PDF" :
-                PDFList.append( fname )
-            elif Format == "Office" :
-                OfficeList.append( fname )
-            elif Format == "HWP" :
-                HWPList.append( fname )
-            else :
-                NoneSupport.append( fname )
+        dlist = os.listdir( DstDir )
+        for dname in dlist :
+            if os.path.isdir( dname ) :
+                dpath = DstDir + "\\" + dname
+                os.chdir( dpath )
+            
+            flist = os.listdir( dpath )
+            for fname in flist : 
+                Format = main.CheckFormat(fname)
+                if Format == "PDF" :
+                    PDFList.append( fname )
+                elif Format == "Office" :
+                    OfficeList.append( fname )
+                elif Format == "HWP" :
+                    HWPList.append( fname )
+                else :
+                    NoneSupport.append( fname )
         
         if PDFList == [] and HWPList == [] and OfficeList == [] :
             log += "None\n"
@@ -287,11 +290,15 @@ if __name__ == '__main__' :
         
         
         # Reault Log
-        log += "\n   * Result *\n" + "   PDF Files : %d\n" % len(PDFList) \
-            + "HWP Files : %d\n" % len(HWPList) \
+        log += "=======================================\n" \
+            + " Result\n" \
+            + "---------------------------------------\n" \
+            + "PDF Files    : %d\n" % len(PDFList) \
+            + "HWP Files    : %d\n" % len(HWPList) \
             + "Office Files : %d\n" % len(OfficeList) \
-            + "None Files : %d\n" % len(NoneSupport) \
-            + "Total Count : %d\n" % len(flist)
+            + "None Files   : %d\n" % len(NoneSupport) \
+            + "Total Count  : %d\n" % len(flist) \
+            + "---------------------------------------\n"
 #            + "\nMove Count : %d\n" % (len(PDFList) + len(HWPList) + len(OfficeList)) \
     
     except :
