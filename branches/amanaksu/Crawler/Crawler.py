@@ -98,15 +98,22 @@ class FTPServer():
             
             os.chdir( Dst )
             SrcList = Src.split("\\")
+            
+            print "11111111111111111111111111111111111111"
+            
             for nextdir in SrcList :
                 MsgFTP = FTP.cwd(nextdir)
                 if MsgFTP.find("250") == -1 :
                     log += "Failure Change Directory\n"
                     return False
             
+            print "2222222222222222222222222222222222222"            
+            
             if FTP.pwd().find( Src ) == -1 :
                 log += "Failure Change Directory\n"
                 return False
+            
+            print "3333333333333333333333333333333333333"            
             
             if not self.DownloadFile(log) :
                 return False
@@ -264,6 +271,7 @@ if __name__ == '__main__' :
     finally:
         if isinstance( FTP, types.InstanceType ) :
             Server.CloseServer(FTP, log)
+            
         print log
     
     exit(0)
