@@ -93,6 +93,9 @@ class FTPServer():
         try :
             log += "[+] Download......"
             
+            if not os.path.isdir( Dst ) :
+                os.mkdir( Dst )
+            
             os.chdir( Dst )
             SrcList = Src.split("\\")
             for nextdir in SrcList :
