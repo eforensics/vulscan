@@ -8,6 +8,8 @@ import optparse, traceback, sys, os, re, struct, ftplib, types, shutil
 from ComFunc import FileControl, BufferControl
 from OLEScanner import OLEScan
 from PDFScanner import PDFScan
+from PEScanner import PEScan
+
 
 class Initialize():
     def GetOption(self):
@@ -34,16 +36,25 @@ class Initialize():
 class Main():
     def CheckFormat(self, fname):    
         try :
+            File = {}
+            File["fname"] = fname
+            File['logbuf'] = ""
+            
             pBuf = FileControl.ReadFileByBinary(fname)
-            if PDFScan.Check(pBuf) :
-                return "PDF"
-            elif OLEScan.Check(pBuf) :
-                return "OLE"
-            else :
-                return ""
+            File["pBuf"] = pBuf
+            
+            ClsList = [PDFScan, OLEScan, PEScan]
+            
+            Format = ""
+            for Cls in ClsList :
+                Format = Cls.check(pBuf) 
+                if Format != "" :
+                    break
             
         except :
-            print traceback.format_exc()   
+            print traceback.format_exc()
+            
+        return Format   
 
 
     def SeparateFile(self, curdirpath, flist, Format):
@@ -53,9 +64,10 @@ class Main():
             if not os.path.exists( dirpath ) : 
                 os.mkdir( dirpath )    
             
-            curdirpath += "\\" + fname
-            dirpath += "\\" + fname
-            shutil.move(curdirpath, dirpath)
+            for fname in flist :
+                tmpcurdirpath = curdirpath + "\\" + fname
+                tmpdirpath = dirpath + "\\" + fname
+                shutil.move(tmpcurdirpath, tmpdirpath)
             
         except :
             print traceback.format_exc()
@@ -228,18 +240,21 @@ if __name__ == '__main__' :
         PDFList = []
         HWPList = []
         OfficeList = []
+        PEList = []
         NoneSupport = []
-        
+                
         main = Main()
         flist = os.listdir( DstDir )
         for fname in flist : 
             Format = main.CheckFormat(fname)
             if Format == "PDF" :
                 PDFList.append( fname )
-            elif Format == "Office" :
+            elif Format == "OLE" :  # Office
                 OfficeList.append( fname )
-            elif Format == "HWP" :
+            elif Format == "OLE" :  # HWP
                 HWPList.append( fname )
+            elif Format == "PE" :
+                PEList.append( fname )
             else :
                 NoneSupport.append( fname )
         
@@ -262,6 +277,10 @@ if __name__ == '__main__' :
         if OfficeList != [] :
             if not main.SeparateFile(DstDir, OfficeList, "Office") :
                 log += "    Failure Separate Office\n"
+        
+        if PEList != [] :
+            if not main.SeparateFile(DstDir, PEList, "PE" ) : 
+                log += "    Failure Separate PE\n"
         
         if NoneSupport != [] :
             if not main.SeparateFile(DstDir, NoneSupport, "unknown") :
