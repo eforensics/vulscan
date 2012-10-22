@@ -17,6 +17,10 @@ class Initialize():
         Parser.add_option('--pw', help='< Password >')
         Parser.add_option('--src', help='< Source Directory >')
         Parser.add_option('--dst', help='< Destination Directory >')
+        
+        Parser.add_option('--dir','--directory', help='< delete directory >')
+        Parser.add_option('--delete', help='< Extend >')
+        
         Parser.add_option('--log', help='< file name >')
         (options, args) = Parser.parse_args()
             
@@ -177,6 +181,19 @@ if __name__ == '__main__' :
     Options = Init.GetOption()
     
     try :
+        # Option : Delete Files 
+        if Options.delete and Options.directory :
+            flist = os.listdir( Options.directory )
+            for fname in flist :
+                fext = os.path.splitext( fname )
+                fdel = os.path.splitext( Options.delete )
+                
+                if fext[1] == fdel[1] :
+                    os.remove( fname )
+        
+            exit(0)
+        
+        
         IP = Options.ip
         ID = Options.id
         PW = Options.pw
@@ -184,6 +201,7 @@ if __name__ == '__main__' :
         DstDir = Options.dst
         
         log = ""
+        
         
         # Connection FTP Server
         FTP = ftplib.FTP()
