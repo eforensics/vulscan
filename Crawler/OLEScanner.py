@@ -382,14 +382,14 @@ class OLEScan():
         try :
             # Case1. 0xe011cfd0, 0xe11ab1a1L
             if BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L and BufferControl.ReadDword(pBuf, 0x4) == 0xe11ab1a1L :
-                return True
+                return "OLE"
             # Case2. 0xe011cfd0, 0x20203fa1
             elif BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L :
-                return True
+                return "OLE"
             else :
-                return False
+                return ""
         except struct.error : 
-            return False
+            return ""
         
         except :
             print traceback.format_exc()

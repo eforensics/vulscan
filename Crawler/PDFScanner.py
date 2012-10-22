@@ -309,9 +309,9 @@ class PDFScan():
     def Check(cls, pBuf):
         try : 
             if bool( re.match("^%PDF-[0-9]\.[0-9]", pBuf) ) :
-                return True
+                return "PDF"
             else :
-                return False      
+                return ""      
         except :
             print traceback.format_exc()
         
