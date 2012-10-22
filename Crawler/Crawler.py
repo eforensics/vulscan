@@ -6,8 +6,7 @@ import optparse, traceback, sys, os, ftplib, shutil
 
 # import Private Module
 from ComFunc import FileControl
-import OLEScanner
-#from OLEScanner import OLEScan
+from OLEScanner import OLEScan, OLEStruct
 from PDFScanner import PDFScan
 from PEScanner import PEScan
 
@@ -44,10 +43,7 @@ class Main():
             pBuf = FileControl.ReadFileByBinary(fname)
             File["pBuf"] = pBuf
             
-            
-            OleScan = OLEScanner.OLEScan()
-            
-            ClsList = [PDFScan, OleScan, PEScan]
+            ClsList = [PDFScan, OLEScan, PEScan]
             
             Format = ""
             for Cls in ClsList :
@@ -74,7 +70,7 @@ class Main():
                     File["pBuf"] = FileControl.OpenFileByBinary( fname )
                     File['logbuf'] = ""
                     
-                    OLE = OLEScanner.OLEStruct( File )
+                    OLE = OLEStruct( File )
             
                     if not OLE.OLEHeader(File) :
                         log += "    [ERROR] OLEHeader( %s )\n" % fname
