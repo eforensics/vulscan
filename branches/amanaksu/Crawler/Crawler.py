@@ -280,16 +280,19 @@ if __name__ == '__main__' :
         
         
         # Connection FTP Server
+        print "11111111111111111111111111111111111111111111"
         FTP = ftplib.FTP()
         Server = FTPServer()
         if not Server.ConnectServer(FTP, IP, ID, PW, log) :
             exit(-1)
         
         # Download Files From FTP Server
+        print "22222222222222222222222222222222222222222222"
         if not Server.Download(FTP, SrcDir, DstDir, log) :
             exit(-1)
         
         # Connection Termination
+        print "33333333333333333333333333333333333333333333"
         Server.CloseServer(FTP, log)
         FTP = ""
         
@@ -299,9 +302,6 @@ if __name__ == '__main__' :
         OLEList = []
         PEList = []
         NoneSupport = []
-        
-        os.chdir( DstDir )
-        
         
         main = Main()
         flist = os.listdir( DstDir )
