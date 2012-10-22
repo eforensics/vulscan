@@ -204,6 +204,9 @@ if __name__ == '__main__' :
         
         log = ""
         
+        if not IP or not ID or not PW or not SrcDir or not DstDir :
+            exit(-1)
+        
         
         # Connection FTP Server
         FTP = ftplib.FTP()
