@@ -5,8 +5,8 @@ import traceback, binascii, os, zlib
 
 
 # import private module
-from ComFunc import BufferControl, FileControl, FileFormat
-import OLEScanner
+from ComFunc import BufferControl, FileControl
+from PEScanner import PEScan
 
 
 class HWP():
@@ -327,10 +327,10 @@ class ParseRecord():
             
             
             # Check PE 
-            CheckFormat = FileFormat()
+            CheckFormat = PEScan()
             for fname in TarList :
                 pBuf = FileControl.ReadFileByBinary( fname )
-                if CheckFormat.CheckPE(pBuf) :
+                if CheckFormat.Check(pBuf) :
                     File['logbuf'] += "\n\n\t    [-] Find PE : %s" % fname
             
         except :
