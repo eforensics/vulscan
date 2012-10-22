@@ -51,7 +51,7 @@ class Main():
             
             Format = ""
             for Cls in ClsList :
-                Format = Cls.check(pBuf) 
+                Format = Cls.Check(pBuf) 
                 if Format != "" :
                     break
             
