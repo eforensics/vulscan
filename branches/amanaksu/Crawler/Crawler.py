@@ -6,7 +6,8 @@ import optparse, traceback, sys, os, re, struct, ftplib, types, shutil
 
 # import Private Module
 from ComFunc import FileControl, BufferControl
-from OLEScanner import OLEScan
+import OLEScanner
+#from OLEScanner import OLEScan
 from PDFScanner import PDFScan
 from PEScanner import PEScan
 
@@ -43,7 +44,10 @@ class Main():
             pBuf = FileControl.ReadFileByBinary(fname)
             File["pBuf"] = pBuf
             
-            ClsList = [PDFScan, OLEScan, PEScan]
+            
+            OleScan = OLEScanner.OLEScan()
+            
+            ClsList = [PDFScan, OleScan, PEScan]
             
             Format = ""
             for Cls in ClsList :
@@ -55,6 +59,63 @@ class Main():
             print traceback.format_exc()
             
         return Format   
+
+
+    def Separation(self, curdirpath, flist, Format, log):
+        try : 
+            # Detailed Separation
+            if Format == "OLE" : 
+                OfficeList = []
+                HWPList = []
+                
+                for fname in flist : 
+                    File = {}
+                    File["fname"] = fname
+                    File["pBuf"] = FileControl.OpenFileByBinary( fname )
+                    File['logbuf'] = ""
+                    
+                    OLE = OLEScanner.OLEStruct( File )
+            
+                    if not OLE.OLEHeader(File) :
+                        log += "    [ERROR] OLEHeader( %s )\n" % fname
+                        return False
+    
+                    if not OLE.OLETableSAT(File) :
+                        log += "    [ERROR] OLETableSAT( %s )\n" % fname
+                        return False
+    
+                    if not OLE.OLETableSSAT(File) :
+                        log += "    [ERROR] OLETableSSAT( %s )\n" % fname
+                        return False
+            
+                    if not OLE.OLEDirectory(File) :
+                        log += "    [ERROR] OLEDirectory( %s )\n" % fname
+                        return False
+                    
+                    if File["format"] == "Office" :
+                        OfficeList.append( fname )
+                    elif File["format"] == "HWP" :
+                        HWPList.append( fname )
+                    else :
+                        log += "    [WARNING] Do not Separation ( %s )\n" % fname
+                        continue
+                
+                if not self.SeparateFile(curdirpath, flist, "HWP") :
+                    log += "    [Failure] %s" % Format
+                
+                if not self.SeparateFile(curdirpath, flist, "Office") :
+                    log += "    [Failure] %s" % Format
+        
+            else :
+                if not self.SeparateFile(curdirpath, flist, Format) :
+                    log += "    [Failure] %s" % Format
+                    return False
+        
+        except : 
+            print traceback.format_exc()
+            return False
+        
+        return True
 
 
     def SeparateFile(self, curdirpath, flist, Format):
@@ -201,7 +262,6 @@ if __name__ == '__main__' :
         
         log = ""
         
-        
         # Option : Delete Files 
         if Options.delete and Options.dir :
             os.chdir( Options.dir )
@@ -238,8 +298,7 @@ if __name__ == '__main__' :
         # Check Samples
         log += "[+] Check Samples File Format........"
         PDFList = []
-        HWPList = []
-        OfficeList = []
+        OLEList = []
         PEList = []
         NoneSupport = []
                 
@@ -250,15 +309,13 @@ if __name__ == '__main__' :
             if Format == "PDF" :
                 PDFList.append( fname )
             elif Format == "OLE" :  # Office
-                OfficeList.append( fname )
-            elif Format == "OLE" :  # HWP
-                HWPList.append( fname )
+                OLEList.append( fname )
             elif Format == "PE" :
                 PEList.append( fname )
             else :
                 NoneSupport.append( fname )
         
-        if PDFList == [] and HWPList == [] and OfficeList == [] :
+        if PDFList == [] and OLEList == [] :
             log += "None\n"
         else :
             log += "Done\n"
@@ -267,23 +324,19 @@ if __name__ == '__main__' :
         # Separate Samples
         log += "[+] Separate Files.........\n"
         if PDFList != [] :
-            if not main.SeparateFile(DstDir, PDFList, "PDF") :
+            if not main.Separation(DstDir, PDFList, "PDF", log) :
                 log += "    Failure Separate PDF\n"
             
-        if HWPList != [] :
-            if not main.SeparateFile(DstDir, HWPList, "HWP") :
+        if OLEList != [] :
+            if not main.Separation(DstDir, OLEList, "OLE", log) :
                 log += "    Failure Separate HWP\n"
             
-        if OfficeList != [] :
-            if not main.SeparateFile(DstDir, OfficeList, "Office") :
-                log += "    Failure Separate Office\n"
-        
         if PEList != [] :
-            if not main.SeparateFile(DstDir, PEList, "PE" ) : 
+            if not main.Separation(DstDir, PEList, "PE", log) : 
                 log += "    Failure Separate PE\n"
         
         if NoneSupport != [] :
-            if not main.SeparateFile(DstDir, NoneSupport, "unknown") :
+            if not main.Separation(DstDir, NoneSupport, "unknown", log) :
                 log += "    Failure Separate Unknown\n"
         
         # Reault Log
@@ -291,8 +344,7 @@ if __name__ == '__main__' :
             + " Result\n" \
             + "---------------------------------------\n" \
             + "PDF Files    : %d\n" % len(PDFList) \
-            + "HWP Files    : %d\n" % len(HWPList) \
-            + "Office Files : %d\n" % len(OfficeList) \
+            + "OLE Files    : %d\n" % len(OLEList) \
             + "None Files   : %d\n" % len(NoneSupport) \
             + "Total Count  : %d\n" % len(flist) \
             + "---------------------------------------\n"
