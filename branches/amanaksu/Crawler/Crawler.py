@@ -5,7 +5,7 @@ import optparse, traceback, sys, os, re, struct, ftplib, types, shutil
 
 
 # import Private Module
-from ComFunc import FileControl, BufferControl
+from ComFunc import FileControl, BufferControl.
 
 
 class Initialize():
@@ -41,7 +41,7 @@ class Main():
             print traceback.format_exc()   
 
 
-    def SeperateFile(self, curdirpath, flist, Format):
+    def SeparateFile(self, curdirpath, flist, Format):
         try :
             dirpath = curdirpath + "\\" + Format
             
@@ -133,23 +133,19 @@ class FTPServer():
             
 
             SrcPath = FTP.pwd()
-            DstPath = os.getcwd()
             for extDir in ExtDir :
                 # Move Src Directory ( in FTP Server )
                 srcpath = SrcPath + "/" + extDir
                 MsgFTP = FTP.cwd( srcpath )
                 if MsgFTP.find("250") == -1 :
                     log += "Failure Change Directory ( %s )" % extDir
-            
-                # Move Dst Directory ( in Host PC )
-#                dstpath = DstPath + "\\" + extDir
-#                if not os.path.exists( dstpath ) : 
-#                    os.mkdir( dstpath )
-#                os.chdir( dstpath )
                 
                 # File Download ( From FTP Server To Host PC )
                 flist = FTP.nlst()
                 for fname in flist :
+                    if os.path.splitext( fname )[1] == ".txt" :
+                        continue
+                    
                     MsgFTP = FTP.retrlines("RETR " + fname, open(fname, 'wb').write)
                     if MsgFTP.find( "226" ) == -1 :
                         log += "    %s ( %s )" % ( fname, MsgFTP )
@@ -197,19 +193,9 @@ class OLEScan():
                 return True
             else :
                 return False
-        except struct.error : 
-            return False
         
         except :
             print traceback.format_exc()
-
-
-    def Scan(self):
-        pass
-
-
-
-
 
 
 
@@ -250,23 +236,17 @@ if __name__ == '__main__' :
         NoneSupport = []
         
         main = Main()
-        dlist = os.listdir( DstDir )
-        for dname in dlist :
-            if os.path.isdir( dname ) :
-                dpath = DstDir + "\\" + dname
-                os.chdir( dpath )
-            
-            flist = os.listdir( dpath )
-            for fname in flist : 
-                Format = main.CheckFormat(fname)
-                if Format == "PDF" :
-                    PDFList.append( fname )
-                elif Format == "Office" :
-                    OfficeList.append( fname )
-                elif Format == "HWP" :
-                    HWPList.append( fname )
-                else :
-                    NoneSupport.append( fname )
+        flist = os.listdir( DstDir )
+        for fname in flist : 
+            Format = main.CheckFormat(fname)
+            if Format == "PDF" :
+                PDFList.append( fname )
+            elif Format == "Office" :
+                OfficeList.append( fname )
+            elif Format == "HWP" :
+                HWPList.append( fname )
+            else :
+                NoneSupport.append( fname )
         
         if PDFList == [] and HWPList == [] and OfficeList == [] :
             log += "None\n"
@@ -277,17 +257,20 @@ if __name__ == '__main__' :
         # Separate Samples
         log += "[+] Separate Files.........\n"
         if PDFList != [] :
-            if not main.SeperateFile(DstDir, PDFList, "PDF") :
+            if not main.SeparateFile(DstDir, PDFList, "PDF") :
                 log += "    Failure Separate PDF\n"
             
         if HWPList != [] :
-            if not main.SeperateFile(DstDir, HWPList, "HWP") :
+            if not main.SeparateFile(DstDir, HWPList, "HWP") :
                 log += "    Failure Separate HWP\n"
             
         if OfficeList != [] :
-            if not main.SeperateFile(DstDir, OfficeList, "Office") :
+            if not main.SeparateFile(DstDir, OfficeList, "Office") :
                 log += "    Failure Separate Office\n"
         
+        if NoneSupport != [] :
+            if not main.SeparateFile(DstDir, NoneSupport, "unknown") :
+                log += "    Failure Separate Unknown\n"
         
         # Reault Log
         log += "=======================================\n" \
