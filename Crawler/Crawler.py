@@ -18,7 +18,7 @@ class Initialize():
         Parser.add_option('--src', help='< Source Directory >')
         Parser.add_option('--dst', help='< Destination Directory >')
         
-        Parser.add_option('--dir','--directory', help='< delete directory >')
+        Parser.add_option('--dir', help='< delete directory >')
         Parser.add_option('--delete', help='< Extend >')
         
         Parser.add_option('--log', help='< file name >')
@@ -182,8 +182,8 @@ if __name__ == '__main__' :
     
     try :
         # Option : Delete Files 
-        if Options.delete and Options.directory :
-            flist = os.listdir( Options.directory )
+        if Options.delete and Options.dir :
+            flist = os.listdir( Options.dir )
             for fname in flist :
                 fext = os.path.splitext( fname )
                 fdel = os.path.splitext( Options.delete )
