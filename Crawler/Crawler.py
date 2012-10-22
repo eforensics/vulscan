@@ -350,6 +350,7 @@ if __name__ == '__main__' :
             + "---------------------------------------\n" \
             + "PDF Files    : %d\n" % len(PDFList) \
             + "OLE Files    : %d\n" % len(OLEList) \
+            + "PE Files     : %d\n" % len(PEList) \
             + "None Files   : %d\n" % len(NoneSupport) \
             + "Total Count  : %d\n" % len(flist) \
             + "---------------------------------------\n"
