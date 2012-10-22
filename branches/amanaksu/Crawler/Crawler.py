@@ -6,7 +6,8 @@ import optparse, traceback, sys, os, re, struct, ftplib, types, shutil
 
 # import Private Module
 from ComFunc import FileControl, BufferControl.
-
+from OLESCanner import OLEScan
+from PDFScanner import PDFScan
 
 class Initialize():
     def GetOption(self):
@@ -168,36 +169,6 @@ class FTPServer():
         
         return True
     
-    
-class PDFScan():
-    @classmethod
-    def Check(cls, pBuf):
-        try : 
-            if bool( re.match("^%PDF-[0-9]\.[0-9]", pBuf) ) :
-                return True
-            else :
-                return False      
-        except :
-            print traceback.format_exc()
-    
-    
-class OLEScan():
-    @classmethod
-    def Check(cls, pBuf):
-        try :
-            # Case1. 0xe011cfd0, 0xe11ab1a1L
-            if BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L and BufferControl.ReadDword(pBuf, 0x4) == 0xe11ab1a1L :
-                return True
-            # Case2. 0xe011cfd0, 0x20203fa1
-            elif BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L :
-                return True
-            else :
-                return False
-        
-        except :
-            print traceback.format_exc()
-
-
 
 
 if __name__ == '__main__' :
