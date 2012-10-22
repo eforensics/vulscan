@@ -6,7 +6,7 @@ import optparse, traceback, sys, os, re, struct, ftplib, types, shutil
 
 # import Private Module
 from ComFunc import FileControl, BufferControl
-from OLESCanner import OLEScan
+from OLEScanner import OLEScan
 from PDFScanner import PDFScan
 
 class Initialize():
