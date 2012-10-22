@@ -10,7 +10,7 @@ class BufferControl():
     
     @classmethod
     def Read(cls, pBuf, Position, Size):
-        return pBuf[Position:Position+Size]
+        return pBuf[Position:Position+Size] 
     
     @classmethod
     def ReadWord(cls, pBuf, Position):
