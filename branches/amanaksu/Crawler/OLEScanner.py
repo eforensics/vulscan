@@ -38,9 +38,6 @@ class OLEStruct():
             # Parse Header 
             MapOLE = MappedOLE()
             Header = MapOLE.MapHeader(File)
-            if Header == {} :
-                print "[ERROR] MapHeader() ( %s )" % File["fname"]
-                return False
                         
 #            PrintOLE.PrintHeader( File, Header )
             
@@ -63,6 +60,7 @@ class OLEStruct():
                     break
         
         except :
+            print "File Name : %s" % File["fname"]
             print traceback.format_exc()
 
         
