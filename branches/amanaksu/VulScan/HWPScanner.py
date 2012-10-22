@@ -5,7 +5,8 @@ import traceback, binascii, os, zlib
 
 
 # import private module
-from ComFunc import BufferControl, FileControl
+from ComFunc import BufferControl, FileControl, FileFormat
+import OLEScanner
 
 
 class HWP():
@@ -13,13 +14,23 @@ class HWP():
     def HWPScan(cls, File):
         try :
             File['logbuf'] += " : HWP"
+            
+#            if File["OptSep"] == "*" or File["OptSep"] == "HWP" :
+#                if not FileControl.SeperateFile(File, "HWP") :
+#                    File['logbuf'] += "\n\t[Failure] Move %s" % File["fname"]            
+#            
+#            return True
+            
+            # Print Directory
+#            for dirlist in File["DirList"] :
+#                OLEScanner.PrintOLE.PrintDirectory(File, dirlist)
+            
             Hwp = OperateHWP()           
             
             # Extract Sector Data
 #            File['logbuf'] += "\n        [Extract] "
             if not Hwp.ExtractSector( File ) : 
                 return False
-            
             
             # Mapped File Header for Compression and Password
             MapHWP = MappedHWP()
@@ -52,10 +63,14 @@ class HWP():
                 File["DecType"] = DecType
             
             
-            # Parse Decrypted Data Record
+            # Checking Vulnerability
+            # Case 1. Size Overflow ( 0xFFFFFFFF ) 
             if not Record.ParseDataRecord(File) :
                 return False
             
+            # Case 2. Embedded PE ( Just "MZ" )
+            if not Record.CheckPEStream(File) :
+                return False
             
             
         except :
@@ -277,7 +292,7 @@ class ParseRecord():
                     
                     File['logbuf'] += "( 0x%08X   %03X   0x%08X (%s) ) - %s" % (TagID, Level, Size, OverFlag, HWPTAG[TagID])
                     
-                    if OverFlag == True and Size > 0x00010000 :
+                    if (OverFlag == True and Size > 0x00010000) or (OverFlag == True and Size == 0xFFFFFFFF) :
                         File['logbuf'] += "   " + ">" * 10 + " Suspicious!!"
 #                        BufferControl.PrintBuffer(File, DecrpytBuf, Position, 0x100)
                     
@@ -290,9 +305,34 @@ class ParseRecord():
         return True
 
 
-    def ParseRecord(self, File, TagID, pBuf, Position, Size):
+    def CheckPEStream(self, File):
         try :
-            File['logbuf'] += "\n\tParseRecord()"
+            dirpath = ""
+            if File["fpath"] :
+                dirpath = os.path.dirname( File["fpath"] )
+            elif File["dpath"] :
+                dirpath = File["dpath"]
+            else :
+                File['logubf'] += "\n\t[ERROR] Get Directory Path"
+                return False
+            
+            
+            # Extract File ( "fname * .dump" )
+            TarList = []
+            flist = os.listdir( dirpath )
+            name = os.path.splitext( File["fname"] )
+            for fname in flist :
+                if fname.find(name[0]) != -1 and fname.find(".dump") :
+                    TarList.append( fname )
+            
+            
+            # Check PE 
+            CheckFormat = FileFormat()
+            for fname in TarList :
+                pBuf = FileControl.ReadFileByBinary( fname )
+                if CheckFormat.CheckPE(pBuf) :
+                    File['logbuf'] += "\n\n\t    [-] Find PE : %s" % fname
+            
         except :
             print traceback.format_exc()
             return False
@@ -300,6 +340,8 @@ class ParseRecord():
         return True
 
 
+
+NormalStream = ["BodyText", "DefaultScript", "DocInfo", "DocOptions", "FileHeader", "HwpSummaryInformation", "JScriptVersion", "LinkDoc", "PrvImage", "PrvText", "RootEntry"]
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------#
 #    TagID 
@@ -360,165 +402,4 @@ HWPTAG = {HWPTAG_BEGIN      :"HWPTAG_DOCUMENT_PROPERTIES",
           HWPTAG_BEGIN+79   :"HWPTAG_CHART_DATA",
           HWPTAG_BEGIN+99   :"HWPTAG_SHAPE_COMPONENT_UNKNOWN" }
 
-#----------------------------------------------------------------------------------------------------------------------------------------------------#
-#    DocInfo Structure 
-#----------------------------------------------------------------------------------------------------------------------------------------------------#
-# HWPTAG_DOCUMENT_PROPERTIES
-szHWPTAG_DOCUMENT_PROPERTIES = [2,2,2,2,2,2,2,4,4,4,4]
-
-
-# HWPTAG_ID_MAPPINGS
-szHWPTAG_ID_MAPPINGS = [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-# HWPTAG_ID_MAPPINGS - Value : 0        Binary Data
-# HWPTAG_ID_MAPPINGS - Value : 1        Hangul Font
-# HWPTAG_ID_MAPPINGS - Value : 2        English Font
-# HWPTAG_ID_MAPPINGS - Value : 3        Hanja Font
-# HWPTAG_ID_MAPPINGS - Value : 4        Japanese Font
-# HWPTAG_ID_MAPPINGS - Value : 5        Etc Font
-# HWPTAG_ID_MAPPINGS - Value : 6        Sign Font
-# HWPTAG_ID_MAPPINGS - Value : 7        User Font
-# HWPTAG_ID_MAPPINGS - Value : 8        Outline / Background
-# HWPTAG_ID_MAPPINGS - Value : 9        Shape of letter
-# HWPTAG_ID_MAPPINGS - Value : 10       Tab
-# HWPTAG_ID_MAPPINGS - Value : 11       Paragraph Number
-# HWPTAG_ID_MAPPINGS - Value : 12       Bullet 
-# HWPTAG_ID_MAPPINGS - Value : 13       Shape of Paragraph 
-# HWPTAG_ID_MAPPINGS - Value : 14       Style
-# HWPTAG_ID_MAPPINGS - Value : 15       Shape of Memo
-
-# HWPTAG_BIN_DATA
-
-
-# HWPTAG_FACE_NAME
-
-
-# HWPTAG_BORDER_FILL
-
-
-# HWPTAG_CHAR_SHAPE
-
-
-# HWPTAG_TAB_DEF
-
-
-# HWPTAG_NUMBERING
-
-
-# HWPTAG_BULLET
-
-
-# HWPTAG_PARA_SHAPE
-
-
-# HWPTAG_STYLE
-
-
-# HWPTAG_DOC_DATA
-
-
-# HWPTAG_DISTRIBUTE_DOC_DATA
-
-
-# RESERVED
-
-
-# HWPTAG_COMPATIBLE_DOCUMENT
-
-
-# HWPTAG_LAYOUT_COMPATIBILITY
-
-
-# HWPTAG_FORBIDDEN_CHAR
-
-#----------------------------------------------------------------------------------------------------------------------------------------------------#
-#    BodyText Structure 
-#----------------------------------------------------------------------------------------------------------------------------------------------------#
-# HWPTAG_PARA_HEADER
-
-
-# HWPTAG_PARA_TEXT
-
-
-# HWPTAG_PARA_CHAR
-
-
-# HWPTAG_PARA_LINE_SEG
-
-
-# HWPTAG_PARA_RANGE_TAG
-
-
-# HWPTAG_CTRL_HEADER
-
-
-# HWPTAG_LIST_HEADER
-
-
-# HWPTAG_PAGE_DEF
-
-
-# HWPTAG_FOOTNOTE_SHAPE
-
-
-# HWPTAG_PAGE_BORDER_FILL
-
-
-# HWPTAG_SHAPE_COMPONENT
-
-
-# HWPTAG_TABLE
-
-
-# HWPTAG_SHAPE_COMPONENT_LINE
-
-
-# HWPTAG_SHAPE_COMPONENT_RECTANGLE
-
-
-# HWPTAG_SHAPE_COMPONENT_ELLIPSE
-
-
-# HWPTAG_SHAPE_COMPONENT_ARC
-
-
-# HWPTAG_SHAPE_COMPONENT_POLYGON
-
-
-# HWPTAG_SHAPE_COMPONENT_CURVE
-
-
-# HWPTAG_SHAPE_COMPONENT_OLE
-
-
-# HWPTAG_SHAPE_COMPONENT_PICTURE
-
-
-# HWPTAG_SHAPE_COMPONENT_CONTAINER
-
-
-# HWPTAG_CTRL_DATA
-
-
-# HWPTAG_EQEDIT
-
-
-# RESERVED
-
-
-# HWPTAG_SHAPE_COMPONENT_TEXTART
-
-
-# HWPTAG_FORM_OBJECT
-
-
-# HWPTAG_SHAPE
-
-
-# HWPTAG_MEMO_LIST
-
-
-# HWPTAG_CHART_DATA
-
-
-# HWPTAG_SHAPE_COMPONENT_UNKNOWN
 

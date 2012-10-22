@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import struct, traceback, glob, os, string
+import struct, traceback, glob, os, string, shutil
 import zlib, cStringIO, binascii, re
 
 # Related File Read/Write
@@ -162,8 +162,46 @@ class FileControl():
                 os.remove(f)
         except :
             print traceback.format_exc()
+    
+    
+    @classmethod
+    def SeperateFile(cls, File, Format):
+        try :
+            if File["fpath"] :
+                curdirpath = os.path.dirname( File["fpath"] )
+            elif File["dpath"] :
+                curdirpath = File["dpath"]
             
+            dirpath = curdirpath + "\\" + Format
             
+            if not os.path.exists( dirpath ) : 
+                os.mkdir( dirpath )    
+            
+            curdirpath += "\\" + File["fname"]
+            dirpath += "\\" + File["fname"]
+            shutil.move(curdirpath, dirpath)
+            
+        except :
+            print traceback.format_exc()
+            return False
+    
+        return True
+    
+
+class FileFormat():
+    def CheckPE(self, pBuf):
+        try :
+            # Check "MZ"
+            Sig1 = BufferControl.Read(pBuf, 0, 2)     
+            if Sig1 != "MZ" and Sig1 != "mz" :
+                return False
+            
+        except :
+            print traceback.format_exc()
+            return False
+            
+        return True
+
 
 class DecodeControl():
     def FlateDecode(self, fname, stream):

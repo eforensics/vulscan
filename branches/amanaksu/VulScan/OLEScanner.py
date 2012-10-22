@@ -1,14 +1,12 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import traceback, binascii
+import traceback, binascii, os
 import struct
 
 
 # import private module
-from ComFunc import BufferControl, FileControl
-from HWPScanner import HWP
-from OfficeScanner import Office
+from ComFunc import BufferControl
 
 
 class OLEStruct():   
@@ -64,10 +62,13 @@ class OLEStruct():
 
         
         # Exception Checking
-        if Header["NumSAT"] > 109 :   
-            File['logbuf'] += "\n    [Failure] Exist Extra SAT!!! ( 0x%08X )" % Header["NumSAT"]     
-            return False
-          
+        if (os.path.getsize( File["fname"] ) < 0x700000) and (Header["NumSAT"] > 109 or Header["NumMSAT"] > 0) :
+            File['logbuf'] += "\n     Suspicious ( 0x%08X )" % os.path.getsize( File["fname"] )
+        
+#        if Header["NumSAT"] > 109 :   
+#            File['logbuf'] += "\n    [Failure] Exist Extra SAT!!! ( 0x%08X )" % Header["NumSAT"]     
+#            return False
+#          
         # Saving Need Data
         File["NumSAT"] = Header["NumSAT"]
         
@@ -170,7 +171,7 @@ class OLEStruct():
                 # Parse Directory
                 Directory = MapOLE.MapDirectory(File, DirData)
                 DirList.append( Directory )
-                Cnt += 1 
+                Cnt += 1
                 
                 # Separate Directory
                 if Directory["EntryType"] == '05' or Directory["szData"] > 0x1000 :
@@ -189,7 +190,8 @@ class OLEStruct():
             
             if File["format"] == "" :
                 File["format"] = "Office"
-            
+        
+        
         except :
             traceback.format_exc()
             return False
@@ -322,28 +324,32 @@ mDirEntry = ["EntryName",   # 000 [0x00] : 0x40 : Character Array of the name of
 class PrintOLE():
     @classmethod
     def PrintHeader(cls, File, Header):
-        File['logbuf'] += "\n\n" + "=" * 79
-        File['logbuf'] += "\n\t\t\t Header"
-        File['logbuf'] += "\n" + "-" * 79
-        File['logbuf'] += "\nSignature\t\t\t: %s" % Header['Signature']
-        File['logbuf'] += "\nSector Size\t\t\t: 0x%08X" % (1<<Header['szSector'])
-        File['logbuf'] += "\nShort-Sector Size\t\t: 0x%08X" % (1<<Header['szShort'])
-        File['logbuf'] += "\nSAT Sector Count\t\t: 0x%08X" % Header['NumSAT']
-        File['logbuf'] += "\nDirectory Sector's First SecID\t: 0x%08X" % Header['DirSecID']
-        File['logbuf'] += "\nShort-SAT Sector's First SecID\t: 0x%08X" % Header['sSATSecID']
-        File['logbuf'] += "\nShort-SAT Sector Count\t\t: 0x%08X" % Header['NumsSAT']
-        File['logbuf'] += "\nMaster-SAT Sector's First SecID\t: 0x%08X" % Header['MSATSecID']
+        File['logbuf'] += "\n\n\t" + "=" * 79
+        File['logbuf'] += "\n\tHeader"
+        File['logbuf'] += "\n\t" + "-" * 79
+        File['logbuf'] += "\n\tSignature\t\t\t\t\t\t: %s" % Header['Signature']
+        File['logbuf'] += "\n\tSector Size\t\t\t\t\t\t: 0x%08X" % (1<<Header['szSector'])
+        File['logbuf'] += "\n\tShort-Sector Size\t\t\t\t: 0x%08X" % (1<<Header['szShort'])
+        File['logbuf'] += "\n\tSAT Sector Count\t\t\t\t: 0x%08X" % Header['NumSAT']
+        File['logbuf'] += "\n\tDirectory Sector's First SecID\t: 0x%08X" % Header['DirSecID']
+        File['logbuf'] += "\n\tShort-SAT Sector's First SecID\t: 0x%08X" % Header['sSATSecID']
+        File['logbuf'] += "\n\tShort-SAT Sector Count\t\t\t: 0x%08X" % Header['NumsSAT']
+        File['logbuf'] += "\n\tMaster-SAT Sector's First SecID\t: 0x%08X" % Header['MSATSecID']
         if Header['NumMSAT'] > 0 :
-            File['logbuf'] += "\nMaster-SAT Sector Count\t\t: 0x%08X -> Need to Big Data Proceduring" % Header['NumMSAT']
+            File['logbuf'] += "\n\tMaster-SAT Sector Count\t\t\t: 0x%08X -> Need to Big Data Proceduring" % Header['NumMSAT']
         else :
-            File['logbuf'] += "\nMaster-SAT Sector Count\t\t: 0x%08X" % Header['NumMSAT']
-        File['logbuf'] += "\n" + "=" * 79 + "\n"
+            File['logbuf'] += "\n\tMaster-SAT Sector Count\t\t\t: 0x%08X" % Header['NumMSAT']
+        File['logbuf'] += "\n\t" + "=" * 79 + "\n"
     
     
     @classmethod
     def PrintDirectory(cls, File, Directory):
         EntryName = BufferControl.ExtractAlphaNumber( Directory["EntryName"] )
-        File['logbuf'] += "\n%s" % EntryName
+        File['logbuf'] += "\n\t    %s" % EntryName
+        if len(EntryName) < 21 :
+            space = 21 - len(EntryName)
+            File['logbuf'] += " " * space
+        
         if Directory["EntryType"] == '01' :
             File['logbuf'] += "\tStorage"                      
         elif Directory["EntryType"] == '02' : 
@@ -387,40 +393,40 @@ class OLEScan():
             print traceback.format_exc()
             
             
-    @classmethod
-    def Scan(cls, File):
-        try :
-            File['logbuf'] += "\n    [+] %s...........%s" % ( File["fname"], File["format"] )
-            
-            OLE = OLEStruct( File )
-            
-            if not OLE.OLEHeader(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLEHeader( %s )" % File["fname"]
-                return False
-    
-            
-            if not OLE.OLETableSAT(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLETableSAT( %s )" % File["fname"]
-                return False
-    
-            if not OLE.OLETableSSAT(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLETableSSAT( %s )" % File["fname"]
-    
-            
-            if not OLE.OLEDirectory(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLEDirectory( %s )" % File["fname"]
-                return False
-
-            DocScan = {"HWP":HWP.HWPScan, "Office":Office.OfficeScan}
-            for field in DocScan :
-                if File["format"] == field :
-                    DocScan[ field ]( File ) 
-            
-        except :
-            print traceback.format_exc()
-            return False
-        
-        return True
+#    @classmethod
+#    def Scan(cls, File):
+#        try :
+#            File['logbuf'] += "\n    [+] %s...........%s" % ( File["fname"], File["format"] )
+#            
+#            OLE = OLEStruct( File )
+#            
+#            if not OLE.OLEHeader(File) :
+#                File['logbuf'] += "\n    [Failure] OLE.OLEHeader( %s )" % File["fname"]
+#                return False
+#    
+#            
+#            if not OLE.OLETableSAT(File) :
+#                File['logbuf'] += "\n    [Failure] OLE.OLETableSAT( %s )" % File["fname"]
+#                return False
+#    
+#            if not OLE.OLETableSSAT(File) :
+#                File['logbuf'] += "\n    [Failure] OLE.OLETableSSAT( %s )" % File["fname"]
+#    
+#            
+#            if not OLE.OLEDirectory(File) :
+#                File['logbuf'] += "\n    [Failure] OLE.OLEDirectory( %s )" % File["fname"]
+#                return False
+#
+#            DocScan = {"HWP":HWP.HWPScan, "Office":Office.OfficeScan}
+#            for field in DocScan :
+#                if File["format"] == field :
+#                    DocScan[ field ]( File ) 
+#            
+#        except :
+#            print traceback.format_exc()
+#            return False
+#        
+#        return True
     
 
 
