@@ -60,7 +60,6 @@ class OLEStruct():
                     break
         
         except :
-            print "File Name : %s" % File["fname"]
             print traceback.format_exc()
 
         
@@ -235,13 +234,13 @@ class MappedOLE():
                     Header[ mHeader[index] ] = BufferControl.ReadWord(pBuf, Position)
                 elif szHeader[index] == 4 :
                     Header[ mHeader[index] ] = BufferControl.ReadDword(pBuf, Position)
-                elif szHeader[index] == 8 :     # for Signature
-                    Header[ mHeader[index] ] = binascii.b2a_hex( BufferControl.Read(pBuf, Position, szHeader[index]) )
+                elif szHeader[index] == 8 :     # for Signature 
+                    Header[ mHeader[index] ] = binascii.b2a_hex( BufferControl.Read(pBuf, Position, 8) )
                 else :
                     Header[ mHeader[index] ] = BufferControl.Read(pBuf, Position, szHeader[index])
                 
                 Position += szHeader[index]
-            
+        
         except :
             print traceback.format_exc()
             return OutHeader

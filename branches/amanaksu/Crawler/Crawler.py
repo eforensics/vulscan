@@ -57,7 +57,7 @@ class Main():
         return Format   
 
 
-    def Separation(self, curdirpath, flist, Format, log):
+    def Separation(self, curdirpath, flist, Format, ExceptList, log):
         try : 
             # Detailed Separation
             if Format == "OLE" : 
@@ -71,21 +71,25 @@ class Main():
                     File['logbuf'] = ""
                     
                     OLE = OLEStruct( File )
-            
+                    
                     if not OLE.OLEHeader(File) :
-                        log += "    [ERROR] OLEHeader( %s )\n" % fname
+                        ExceptList.append( fname )
+                        ExceptList.append( "Failure : OLEHeader()")
                         continue
     
                     if not OLE.OLETableSAT(File) :
-                        log += "    [ERROR] OLETableSAT( %s )\n" % fname
+                        ExceptList.append( fname )
+                        ExceptList.append( "Failure : OLETableSAT()")
                         continue
     
                     if not OLE.OLETableSSAT(File) :
-                        log += "    [ERROR] OLETableSSAT( %s )\n" % fname
+                        ExceptList.append( fname )
+                        ExceptList.append( "Failure : OLETableSSAT()")
                         continue
             
                     if not OLE.OLEDirectory(File) :
-                        log += "    [ERROR] OLEDirectory( %s )\n" % fname
+                        ExceptList.append( fname )
+                        ExceptList.append( "Failure : OLEDirectory()")
                         continue
                     
                     if File["format"] == "Office" :
@@ -93,24 +97,28 @@ class Main():
                     elif File["format"] == "HWP" :
                         HWPList.append( fname )
                     else :
-                        log += "    [WARNING] Do not Separation ( %s )\n" % fname
+                        ExceptList.append( fname )
+                        ExceptList.append( "Failure : None Format")
                         continue
                 
                 if not self.SeparateFile(curdirpath, HWPList, "HWP") :
-                    log += "    [Failure] %s" % Format
-                    print HWPList
+                    ExceptList.append( fname )
+                    ExceptList.append( "Failure : SeparateFile( HWP )")
+                    
                 
                 if not self.SeparateFile(curdirpath, OfficeList, "Office") :
-                    log += "    [Failure] %s" % Format
-                    print OfficeList
+                    ExceptList.append( fname )
+                    ExceptList.append( "Failure : SeparateFile( Office )")
         
             else :
                 if not self.SeparateFile(curdirpath, flist, Format) :
-                    log += "    [Failure] %s" % Format
-                    return False
+                    ExceptList.append( fname )
+                    strlog = "Failure : SeparateFile( %s )" % Format
+                    ExceptList.append( strlog )
         
         except : 
-            log += "    File Name : %s" % fname
+            ExceptList.append( fname )
+            ExceptList.append( "Exception : Separation()" )
             print traceback.format_exc()
             return False
         
@@ -275,7 +283,6 @@ if __name__ == '__main__' :
         
             exit(0)
         
-        
         if not IP or not ID or not PW or not SrcDir or not DstDir :
             exit(-1)
         
@@ -301,6 +308,8 @@ if __name__ == '__main__' :
         PEList = []
         NoneSupport = []
         
+#        os.chdir( DstDir )
+        
         main = Main()
         flist = os.listdir( DstDir )
         for fname in flist : 
@@ -322,37 +331,37 @@ if __name__ == '__main__' :
 
         # Separate Samples
         log += "[+] Separate Files.........\n"
+        ExceptList = []
         if PDFList != [] :
-            if not main.Separation(DstDir, PDFList, "PDF", log) :
-                log += "    Failure Separate PDF\n"
-                print PDFList
+            main.Separation(DstDir, PDFList, "PDF", ExceptList, log) 
             
         if OLEList != [] :
-            if not main.Separation(DstDir, OLEList, "OLE", log) :
-                log += "    Failure Separate OLE\n"
-                # Error List print in Function "Separation"
+            main.Separation(DstDir, OLEList, "OLE", ExceptList, log) 
             
         if PEList != [] :
-            if not main.Separation(DstDir, PEList, "PE", log) : 
-                log += "    Failure Separate PE\n"
-                print PEList
+            main.Separation(DstDir, PEList, "PE", ExceptList, log)
         
         if NoneSupport != [] :
-            if not main.Separation(DstDir, NoneSupport, "unknown", log) :
-                log += "    Failure Separate Unknown\n"
-                print NoneSupport
+            main.Separation(DstDir, NoneSupport, "unknown", ExceptList, log) 
         
         # Reault Log
-        log += "=======================================\n" \
+        log += "=" * 70 + "\n" \
             + " Result\n" \
-            + "---------------------------------------\n" \
+            + "-" * 70 + "\n" \
             + "PDF Files    : %d\n" % len(PDFList) \
             + "OLE Files    : %d\n" % len(OLEList) \
             + "PE Files     : %d\n" % len(PEList) \
             + "None Files   : %d\n" % len(NoneSupport) \
+            + "Except Files : %d\n" % (len(ExceptList)/2) \
             + "Total Count  : %d\n" % len(flist) \
-            + "---------------------------------------\n"
-#            + "\nMove Count : %d\n" % (len(PDFList) + len(HWPList) + len(OfficeList)) \
+            + "-" * 70 + "\n" \
+            + "File Name\t\t\t\tDescription\n"
+        
+        if len(ExceptList) :
+            index = 0
+            while index < len(ExceptList) :
+                log += "%s\t%s" % (ExceptList[index], ExceptList[index+1])
+                index += 2
     
     except :
         print traceback.format_exc() 
