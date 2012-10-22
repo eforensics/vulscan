@@ -13,6 +13,13 @@ class Office():
     def OfficeScan(cls, File):
         try :
             File['logbuf'] += " : Office"
+            
+#            if File["OptSep"] == "*" or File["OptSep"] == "Office" :
+#                if not FileControl.SeperateFile(File, "Office") :
+#                    File['logbuf'] += "\n\t[Failure] Move %s" % File["fname"]            
+#            
+#            return True
+            
         except :
             print traceback.format_exc()
             return False

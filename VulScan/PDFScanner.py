@@ -5,7 +5,7 @@ import re, traceback, binascii
 
 
 # import private module
-from ComFunc import FileControl, DecodeControl
+from ComFunc import DecodeControl
 
 
 
@@ -316,82 +316,88 @@ class PDFScan():
             print traceback.format_exc()
         
         
-    @classmethod
-    def Scan(cls, File):
-        try :
-            File['logbuf'] += "\n    [+] %s...........%s" % ( File["fname"], File["format"] )
-            
-            pBuf = File["pBuf"]
-            Search = PDFSearch()
-            
-            # Check Suspicious Events
-            Event = Search.SearchEvent(pBuf)
-            
-            # Check Suspicious Actions
-            Action = Search.SearchAction(pBuf)
-            
-            # Check Element to Analyze with Actions
-            Element = Search.SearchElement(File, pBuf, Action)
-            
-            # Check UnEscape to Analyze Element in PDF     
-            Operation = OperateStream()
-            unescapedBytes = []
-            for element in Element :
-                if type(element) == type(None) :
-                        continue
-                
-#                print "Scan : %s" % File["fname"]
-                element = Operation.FilterObj(element)
-                if Operation.isJavaScript( element ) :
-                    name = File["fname"] + "_" + hex( len(element) )
-                    FileControl.WriteFile(name, element)
-                    
-                    UnEscapeData = Operation.Unescaping( element )
-                    if UnEscapeData not in unescapedBytes :
-                        unescapedBytes.append( UnEscapeData )
-            
-            ElementData = ""
-            for element in Element :
-                JSList = Search.SearchJS(element)
-                if JSList == [] :
-                    continue
-
-                for JS in JSList :
-                    ElementData += "[%s : %s]\n" % (JS, CVENo[JS])
-                ElementData += element
-            
-            
-            if Event == [] and Action == [] and ElementData == "" :
-                File['logbuf'] += "\t[ Done ]"
-            else :
-                File['logbuf'] += "\t[ Find ]"
-            
-            
-            # Logging Suspicious Data 
-            if Event != [] :
-                File['logbuf'] += "\n            Event  : "
-                for event in Event :
-                    File['logbuf'] += event + " "
-                
-                
-            if Action != [] :
-                File['logbuf'] += "\n            Action : "
-                for action in Action :
-                    File['logbuf'] += action + " "
-                
-                
-            if ElementData != "" :
-                FileControl.WriteFile("%s_Element.dat" % File["fname"], ElementData)    
-                File['logbuf'] += "\n        [-] %s\t<%s_Element.dat>" % (File["fname"],  File["fname"]) 
-            
-        except :
-            File['logbuf'] += "\t[ Error ]"
-            print traceback.format_exc()
-            return False
-        
-        return True
-
-
+#    @classmethod
+#    def Scan(cls, File):
+#        try :
+#            File['logbuf'] += "\n    [+] %s...........%s" % ( File["fname"], File["format"] )
+#            
+##            if File["OptSep"] == "*" or File["OptSep"] == "PDF" :
+##                if not FileControl.SeperateFile(File, "PDF") :
+##                    File['logbuf'] += "\n\t[Failure] Move %s" % File["fname"]            
+##            
+##            return True
+#            
+#            pBuf = File["pBuf"]
+#            Search = PDFSearch()
+#            
+#            # Check Suspicious Events
+#            Event = Search.SearchEvent(pBuf)
+#            
+#            # Check Suspicious Actions
+#            Action = Search.SearchAction(pBuf)
+#            
+#            # Check Element to Analyze with Actions
+#            Element = Search.SearchElement(File, pBuf, Action)
+#            
+#            # Check UnEscape to Analyze Element in PDF     
+#            Operation = OperateStream()
+#            unescapedBytes = []
+#            for element in Element :
+#                if type(element) == type(None) :
+#                        continue
+#                
+##                print "Scan : %s" % File["fname"]
+#                element = Operation.FilterObj(element)
+#                if Operation.isJavaScript( element ) :
+#                    name = File["fname"] + "_" + hex( len(element) )
+#                    FileControl.WriteFile(name, element)
+#                    
+#                    UnEscapeData = Operation.Unescaping( element )
+#                    if UnEscapeData not in unescapedBytes :
+#                        unescapedBytes.append( UnEscapeData )
+#            
+#            ElementData = ""
+#            for element in Element :
+#                JSList = Search.SearchJS(element)
+#                if JSList == [] :
+#                    continue
+#
+#                for JS in JSList :
+#                    ElementData += "[%s : %s]\n" % (JS, CVENo[JS])
+#                ElementData += element
+#            
+#            
+#            if Event == [] and Action == [] and ElementData == "" :
+#                File['logbuf'] += "\t[ Done ]"
+#            else :
+#                File['logbuf'] += "\t[ Find ]"
+#            
+#            
+#            # Logging Suspicious Data 
+#            if Event != [] :
+#                File['logbuf'] += "\n            Event  : "
+#                for event in Event :
+#                    File['logbuf'] += event + " "
+#                
+#                
+#            if Action != [] :
+#                File['logbuf'] += "\n            Action : "
+#                for action in Action :
+#                    File['logbuf'] += action + " "
+#                
+#                
+#            if ElementData != "" :
+#                FileControl.WriteFile("%s_Element.dat" % File["fname"], ElementData)    
+#                File['logbuf'] += "\n        [-] %s\t<%s_Element.dat>" % (File["fname"],  File["fname"]) 
+#            
+#        except :
+#            File['logbuf'] += "\t[ Error ]"
+#            print traceback.format_exc()
+#            return False
+#        
+#        return True
+#
+#
 SuspiciousEvents = ['/OpenAction', '/AA']
 SuspiciousActions = ['/JS', '/JavaScript', '/Launch', '/SubmitForm', '/ImportData']
 SuspiciousJS = ['mailto', 
@@ -401,14 +407,14 @@ SuspiciousJS = ['mailto',
                 'getIcon', 
                 'spell.customDictionaryOpen', 
                 'media.newPlayer']
-
-CVENo = {"mailto"                       :   "CVE-2007-5020", 
-         "Collab.collectEmailInfo"      :   "CVE-2007-5659", 
-         "util.printf"                  :   "CVE-2008-2992", 
-         "getAnnots"                    :   "CVE-2009-1492", 
-         "getIcon"                      :   "CVE-2009-0927", 
-         "spell.customDictionaryOpen"   :   "CVE-2009-1493", 
-         "media.newPlayer"              :   "CVE-2009-4324"}
+#
+#CVENo = {"mailto"                       :   "CVE-2007-5020", 
+#         "Collab.collectEmailInfo"      :   "CVE-2007-5659", 
+#         "util.printf"                  :   "CVE-2008-2992", 
+#         "getAnnots"                    :   "CVE-2009-1492", 
+#         "getIcon"                      :   "CVE-2009-0927", 
+#         "spell.customDictionaryOpen"   :   "CVE-2009-1493", 
+#         "media.newPlayer"              :   "CVE-2009-4324"}
 
 
 
