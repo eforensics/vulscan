@@ -183,6 +183,8 @@ if __name__ == '__main__' :
     try :
         # Option : Delete Files 
         if Options.delete and Options.dir :
+            os.chdir( Options.dir )
+            
             flist = os.listdir( Options.dir )
             for fname in flist :
                 fext = os.path.splitext( fname )
