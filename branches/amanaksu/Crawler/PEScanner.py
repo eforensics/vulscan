@@ -7,7 +7,8 @@ import traceback
 from ComFunc import BufferControl
 
 class PEScan():
-    def Check(self, pBuf):
+    @classmethod
+    def Check(cls, pBuf):
         try :
             if BufferControl.Read(pBuf, 0, 2) == "MZ" or BufferControl.Read(pBuf, 0, 2) == "mz" :
                 return "PE"
