@@ -1,11 +1,11 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import optparse, traceback, sys, os, re, struct, ftplib, types, shutil
+import optparse, traceback, sys, os, ftplib, shutil
 
 
 # import Private Module
-from ComFunc import FileControl, BufferControl
+from ComFunc import FileControl
 import OLEScanner
 #from OLEScanner import OLEScan
 from PDFScanner import PDFScan
@@ -78,19 +78,19 @@ class Main():
             
                     if not OLE.OLEHeader(File) :
                         log += "    [ERROR] OLEHeader( %s )\n" % fname
-                        return False
+                        continue
     
                     if not OLE.OLETableSAT(File) :
                         log += "    [ERROR] OLETableSAT( %s )\n" % fname
-                        return False
+                        continue
     
                     if not OLE.OLETableSSAT(File) :
                         log += "    [ERROR] OLETableSSAT( %s )\n" % fname
-                        return False
+                        continue
             
                     if not OLE.OLEDirectory(File) :
                         log += "    [ERROR] OLEDirectory( %s )\n" % fname
-                        return False
+                        continue
                     
                     if File["format"] == "Office" :
                         OfficeList.append( fname )
@@ -100,11 +100,13 @@ class Main():
                         log += "    [WARNING] Do not Separation ( %s )\n" % fname
                         continue
                 
-                if not self.SeparateFile(curdirpath, flist, "HWP") :
+                if not self.SeparateFile(curdirpath, HWPList, "HWP") :
                     log += "    [Failure] %s" % Format
+                    print HWPList
                 
-                if not self.SeparateFile(curdirpath, flist, "Office") :
+                if not self.SeparateFile(curdirpath, OfficeList, "Office") :
                     log += "    [Failure] %s" % Format
+                    print OfficeList
         
             else :
                 if not self.SeparateFile(curdirpath, flist, Format) :
@@ -308,7 +310,7 @@ if __name__ == '__main__' :
             Format = main.CheckFormat(fname)
             if Format == "PDF" :
                 PDFList.append( fname )
-            elif Format == "OLE" :  # Office
+            elif Format == "OLE" :  # Office and HWP
                 OLEList.append( fname )
             elif Format == "PE" :
                 PEList.append( fname )
@@ -326,18 +328,22 @@ if __name__ == '__main__' :
         if PDFList != [] :
             if not main.Separation(DstDir, PDFList, "PDF", log) :
                 log += "    Failure Separate PDF\n"
+                print PDFList
             
         if OLEList != [] :
             if not main.Separation(DstDir, OLEList, "OLE", log) :
-                log += "    Failure Separate HWP\n"
+                log += "    Failure Separate OLE\n"
+                # Error List print in Function "Separation"
             
         if PEList != [] :
             if not main.Separation(DstDir, PEList, "PE", log) : 
                 log += "    Failure Separate PE\n"
+                print PEList
         
         if NoneSupport != [] :
             if not main.Separation(DstDir, NoneSupport, "unknown", log) :
                 log += "    Failure Separate Unknown\n"
+                print NoneSupport
         
         # Reault Log
         log += "=======================================\n" \
