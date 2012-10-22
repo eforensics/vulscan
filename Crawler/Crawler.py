@@ -282,8 +282,8 @@ if __name__ == '__main__' :
         print traceback.format_exc() 
     
     finally:
-        if isinstance( FTP, types.InstanceType ) :
-            Server.CloseServer(FTP, log)
+#        if isinstance( FTP, types.InstanceType ) :
+#            Server.CloseServer(FTP, log)
             
         print log
     
