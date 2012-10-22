@@ -299,7 +299,10 @@ if __name__ == '__main__' :
         OLEList = []
         PEList = []
         NoneSupport = []
-                
+        
+        os.chdir( DstDir )
+        
+        
         main = Main()
         flist = os.listdir( DstDir )
         for fname in flist : 
