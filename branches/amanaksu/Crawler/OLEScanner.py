@@ -38,6 +38,9 @@ class OLEStruct():
             # Parse Header 
             MapOLE = MappedOLE()
             Header = MapOLE.MapHeader(File)
+            if Header == {} :
+                print "[ERROR] MapHeader() ( %s )" % File["fname"]
+                return False
                         
 #            PrintOLE.PrintHeader( File, Header )
             
