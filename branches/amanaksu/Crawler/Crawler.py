@@ -181,6 +181,15 @@ if __name__ == '__main__' :
     Options = Init.GetOption()
     
     try :
+        IP = Options.ip
+        ID = Options.id
+        PW = Options.pw
+        SrcDir = Options.src
+        DstDir = Options.dst
+        
+        log = ""
+        
+        
         # Option : Delete Files 
         if Options.delete and Options.dir :
             os.chdir( Options.dir )
@@ -195,14 +204,6 @@ if __name__ == '__main__' :
         
             exit(0)
         
-        
-        IP = Options.ip
-        ID = Options.id
-        PW = Options.pw
-        SrcDir = Options.src
-        DstDir = Options.dst
-        
-        log = ""
         
         if not IP or not ID or not PW or not SrcDir or not DstDir :
             exit(-1)
