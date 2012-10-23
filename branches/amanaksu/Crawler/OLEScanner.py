@@ -61,7 +61,7 @@ class OLEStruct():
                     break
                 
                 if SecID > len(MSATList) :
-                    print "   [OLEHeader] %s ( Over SecID : 0x%08x ) - Suspicious" % (File["fname"], SecID)
+                    print "   [OLEHeader] %s ( Over SecID : %d / %d ) - Suspicious" % (File["fname"], len(MSATList), SecID)
                     break
         
         except :
@@ -220,7 +220,7 @@ class OLEStruct():
                     break
                 
                 if SecID > len(table) :
-                    print "   [OLETableTraceBySecID] %s ( Over SecID : 0x%08x / 0x%08x) - Suspicious" % (fname, len(table), SecID)
+                    print "   %s ( Over SecID : %d / %d) - Suspicious" % (fname, len(table), SecID)
                     break
                 
         except :
