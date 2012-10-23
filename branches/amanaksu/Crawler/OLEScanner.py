@@ -61,7 +61,7 @@ class OLEStruct():
                     break
                 
                 if SecID > len(MSATList) :
-                    File['log'] += "   [OLEHeader] %s ( Over SecID : 0x%08x ) - Suspicious" % (File["fname"], SecID)
+                    print "   [OLEHeader] %s ( Over SecID : 0x%08x ) - Suspicious" % (File["fname"], SecID)
                     break
         
         except :
@@ -128,7 +128,7 @@ class OLEStruct():
             # Get SSAT Sector
             Sector = ""
             SAT = File["SATable"]
-            Sector = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["SSATSecID"], 0x200, File['log'])
+            Sector = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["SSATSecID"], 0x200)
             if Sector == "" :
                 File['logbuf'] += "\n    [Failure] OLETableTraceBySecID( ) for OLETableSSAT( )"
                 return False
@@ -154,7 +154,7 @@ class OLEStruct():
         try :
             # Dump Directory 
             SAT = File["SATable"]  
-            Sectors = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["DirSecID"], 0x200, File['log'])
+            Sectors = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["DirSecID"], 0x200)
             if Sectors == "" :
                 File['logbuf'] += "\n    [Failure] OLETableTraceBySecID( ) for OLEDirectory( )"
                 return False
@@ -220,7 +220,7 @@ class OLEStruct():
                     break
                 
                 if SecID > len(table) :
-                    log += "   [OLETableTraceBySecID] %s ( Over SecID : 0x%08x ) - Suspicious" % (fname, SecID)
+                    print "   [OLETableTraceBySecID] %s ( Over SecID : 0x%08x ) - Suspicious" % (fname, SecID)
                     break
                 
         except :

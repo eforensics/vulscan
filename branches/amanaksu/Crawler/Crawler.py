@@ -64,9 +64,8 @@ class Main():
                 OfficeList = []
                 HWPList = []
                 
-                File = {}
-                File['log'] = log
-                for fname in flist : 
+                for fname in flist :
+                    File = {} 
                     File["fname"] = fname
                     File["pBuf"] = FileControl.ReadFileByBinary(fname)
                     File['logbuf'] = ""
@@ -102,8 +101,6 @@ class Main():
                         ExceptList.append( "Failure : None Format")
                         continue
                 
-                log = File['log']
-                
                 if not self.SeparateFile(curdirpath, HWPList, "HWP") :
                     ExceptList.append( fname )
                     ExceptList.append( "Failure : SeparateFile( HWP )")
@@ -123,7 +120,6 @@ class Main():
             ExceptList.append( fname )
             ExceptList.append( "Exception : Separation()" )
             print traceback.format_exc()
-            log = File['log']
             return False
         
         return True
