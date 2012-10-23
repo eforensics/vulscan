@@ -210,7 +210,7 @@ class OLEStruct():
 
     
     @classmethod
-    def OLETableTraceBySecID(cls, fname, pBuf, table, SecID, Size, log):
+    def OLETableTraceBySecID(cls, fname, pBuf, table, SecID, Size):
         try :
             Sector = ""
             while True :
@@ -220,7 +220,7 @@ class OLEStruct():
                     break
                 
                 if SecID > len(table) :
-                    print "   [OLETableTraceBySecID] %s ( Over SecID : 0x%08x ) - Suspicious" % (fname, SecID)
+                    print "   [OLETableTraceBySecID] %s ( Over SecID : 0x%08x / 0x%08x) - Suspicious" % (fname, len(table), SecID)
                     break
                 
         except :
