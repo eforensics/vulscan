@@ -67,8 +67,9 @@ class Main():
                 for fname in flist : 
                     File = {}
                     File["fname"] = fname
-                    File["pBuf"] = FileControl.OpenFileByBinary( fname )
+                    File["pBuf"] = FileControl.ReadFileByBinary(fname)
                     File['logbuf'] = ""
+                    File['log'] = log
                     
                     OLE = OLEStruct( File )
                     
@@ -120,8 +121,10 @@ class Main():
             ExceptList.append( fname )
             ExceptList.append( "Exception : Separation()" )
             print traceback.format_exc()
+            log = File['log']
             return False
         
+        log = File['log']
         return True
 
 
@@ -310,9 +313,14 @@ if __name__ == '__main__' :
         
 #        os.chdir( DstDir )
         
+        DirCnt = 0
         main = Main()
         flist = os.listdir( DstDir )
         for fname in flist : 
+            if os.path.isdir( fname ) :
+                DirCnt += 1
+                continue
+            
             Format = main.CheckFormat(fname)
             if Format == "PDF" :
                 PDFList.append( fname )
@@ -328,7 +336,7 @@ if __name__ == '__main__' :
         else :
             log += "Done\n"
         
-
+        
         # Separate Samples
         log += "[+] Separate Files.........\n"
         ExceptList = []
@@ -346,21 +354,24 @@ if __name__ == '__main__' :
         
         # Reault Log
         log += "=" * 70 + "\n" \
-            + " Result\n" \
+            + "     Result\n" \
             + "-" * 70 + "\n" \
-            + "PDF Files    : %d\n" % len(PDFList) \
-            + "OLE Files    : %d\n" % len(OLEList) \
-            + "PE Files     : %d\n" % len(PEList) \
-            + "None Files   : %d\n" % len(NoneSupport) \
-            + "Except Files : %d\n" % (len(ExceptList)/2) \
-            + "Total Count  : %d\n" % len(flist) \
-            + "-" * 70 + "\n" \
-            + "File Name\t\t\t\tDescription\n"
+            + "  PDF Files       : %d\n" % len(PDFList) \
+            + "  OLE Files       : %d\n" % len(OLEList) \
+            + "  PE Files        : %d\n" % len(PEList) \
+            + "  None Files      : %d\n" % len(NoneSupport) \
+            + "\n  File Count      : %d\n" % (len(flist) - DirCnt) \
+            + "  Directory Count : %d\n" % DirCnt \
+            + "  Total Count     : %d\n" % len(flist) \
+            + "-" * 70 + "\n"
         
         if len(ExceptList) :
+            log += "  Except Files : %d\n" % (len(ExceptList)/2) \
+                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
+            
             index = 0
             while index < len(ExceptList) :
-                log += "%s\t%s" % (ExceptList[index], ExceptList[index+1])
+                log += "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
                 index += 2
     
     except :
