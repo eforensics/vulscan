@@ -74,22 +74,22 @@ class Main():
                     
                     if not OLE.OLEHeader(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLEHeader()")
+                        ExceptList.append( "Failure : OLEHeader()\n")
                         continue
     
                     if not OLE.OLETableSAT(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLETableSAT()")
+                        ExceptList.append( "Failure : OLETableSAT()\n")
                         continue
     
                     if not OLE.OLETableSSAT(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLETableSSAT()")
+                        ExceptList.append( "Failure : OLETableSSAT()\n")
                         continue
             
                     if not OLE.OLEDirectory(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLEDirectory()")
+                        ExceptList.append( "Failure : OLEDirectory()\n")
                         continue
                     
                     if File["format"] == "Office" :
@@ -98,7 +98,7 @@ class Main():
                         HWPList.append( fname )
                     else :
                         ExceptList.append( fname )
-                        ExceptList.append( "Failure : None Format")
+                        ExceptList.append( "Failure : None Format\n")
                         continue
                 
                 if not self.SeparateFile(curdirpath, HWPList, "HWP") :
@@ -203,7 +203,8 @@ class FTPServer():
     def DownloadFile(self, FTP, log):
         try :
             # Check Target Directory By File Format
-            TargetName = ["PDF", "unknown", "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document"]
+            TargetName = ["PDF", "unknown", "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document" \
+                          "Office Open XML Spreadsheet"]
             ExtDir = []
             
             DirList = FTP.nlst()
