@@ -1,12 +1,13 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import traceback, binascii, os
+import traceback, binascii, os, sys
 import struct
 
+from collections import namedtuple
 
 # import private module
-from ComFunc import BufferControl
+from ComFunc import BufferControl, FileControl
 from HWPScanner import HWP
 from OfficeScanner import Office
 
@@ -57,6 +58,10 @@ class OLEStruct():
                 SecID = MSATList[index]
                 MSAT.append( SecID )
                 if SecID == 0xffffffff or SecID == 0xfffffffe or SecID == 0xfffffffd or SecID == 0xfffffffc :
+                    break
+                
+                if SecID > len(MSATList) :
+                    File['log'] += "   [OLEHeader] %s ( Over SecID : 0x%08x ) - Suspicious" % (File["fname"], SecID)
                     break
         
         except :
@@ -123,7 +128,7 @@ class OLEStruct():
             # Get SSAT Sector
             Sector = ""
             SAT = File["SATable"]
-            Sector = OLEStruct.OLETableTraceBySecID(File["pBuf"], SAT, File["SSATSecID"], 0x200)
+            Sector = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["SSATSecID"], 0x200, File['log'])
             if Sector == "" :
                 File['logbuf'] += "\n    [Failure] OLETableTraceBySecID( ) for OLETableSSAT( )"
                 return False
@@ -149,7 +154,7 @@ class OLEStruct():
         try :
             # Dump Directory 
             SAT = File["SATable"]  
-            Sectors = OLEStruct.OLETableTraceBySecID(File["pBuf"], SAT, File["DirSecID"], 0x200)
+            Sectors = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["DirSecID"], 0x200, File['log'])
             if Sectors == "" :
                 File['logbuf'] += "\n    [Failure] OLETableTraceBySecID( ) for OLEDirectory( )"
                 return False
@@ -205,7 +210,7 @@ class OLEStruct():
 
     
     @classmethod
-    def OLETableTraceBySecID(cls, pBuf, table, SecID, Size):
+    def OLETableTraceBySecID(cls, fname, pBuf, table, SecID, Size, log):
         try :
             Sector = ""
             while True :
@@ -213,6 +218,11 @@ class OLEStruct():
                 SecID = table[SecID]
                 if SecID == 0xffffffff or SecID == 0xfffffffe or SecID == 0xfffffffd or SecID == 0xfffffffc :
                     break
+                
+                if SecID > len(table) :
+                    log += "   [OLETableTraceBySecID] %s ( Over SecID : 0x%08x ) - Suspicious" % (fname, SecID)
+                    break
+                
         except :
             print traceback.format_exc()
         
@@ -235,12 +245,12 @@ class MappedOLE():
                 elif szHeader[index] == 4 :
                     Header[ mHeader[index] ] = BufferControl.ReadDword(pBuf, Position)
                 elif szHeader[index] == 8 :     # for Signature 
-                    Header[ mHeader[index] ] = binascii.b2a_hex( BufferControl.Read(pBuf, Position, 8) )
+                    Header[ mHeader[index] ] = binascii.b2a_hex( BufferControl.Read(pBuf, Position, szHeader[index]) )
                 else :
                     Header[ mHeader[index] ] = BufferControl.Read(pBuf, Position, szHeader[index])
                 
                 Position += szHeader[index]
-        
+                    
         except :
             print traceback.format_exc()
             return OutHeader

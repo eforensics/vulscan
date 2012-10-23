@@ -125,6 +125,10 @@ class FileControl():
     def OpenFileByBinary(cls, fname):
         try : 
             fp = open( fname, 'rb' )
+        
+        except IOError :
+            print "IOError : %s" % fname    
+        
         except :
             print traceback.format_exc()
             
