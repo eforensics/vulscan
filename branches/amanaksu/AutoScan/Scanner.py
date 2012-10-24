@@ -205,19 +205,6 @@ class Action():
             return False
 
 
-    def isCategorizer(self, dstdir, FormatList, Errlog):
-        try :
-            predir = os.path.split( dstdir )
-            if predir[1] in FormatList :
-                return True
-            else :
-                return False
-        
-        except :
-            Errlog += traceback.format_exc()
-            return False
-
-
     def Categorizer(self, Options, log, Errlog):
         try :    
             # Separate File Format
@@ -246,8 +233,7 @@ class Action():
             return FileList
         
         except :
-#            Errlog += traceback.format_exc()
-            print traceback.format_exc()
+            Errlog += traceback.format_exc()
             return {}
 
 
@@ -449,7 +435,7 @@ class Main():
                     elif Format == "OLE" :
                         OLEScan.Scan(File)
                     else :
-                        break
+                        continue
             
             return True
         
@@ -491,7 +477,7 @@ if __name__ == '__main__' :
                 Errlog += tmplog
                 exit(-1)
     
-    
+        sFlag = False
         FormatList = ["PDF", "OLE"]
     
         # Options "FTP"
@@ -502,11 +488,12 @@ if __name__ == '__main__' :
                 exit(-1)
             
             Errlog = "Into Options \"FTP - Categorizer()\"\n"
+            print "FTP() - Categorizer()"
             FileList = Act.Categorizer(Options, log, tmplog)
             if FileList == {} :
                 Errlog += tmplog
                 exit(-1)
-        
+            sFlag = True
         
         # Options "Scan"
         if Options.scan :
@@ -518,7 +505,8 @@ if __name__ == '__main__' :
             else :
                 exit(-1)
             
-            if not Act.isCategorizer(dstdir, FormatList, tmplog) :
+            print "Scan() - Categorizer()"
+            if sFlag == False :
                 FileList = Act.Categorizer(Options, log, tmplog)
                 if FileList == {} :
                     Errlog += tmplog
