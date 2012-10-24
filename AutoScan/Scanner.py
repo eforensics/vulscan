@@ -360,8 +360,13 @@ class Action():
         try :
             dirpath = curdirpath + "\\" + Format
             
+            
+            print "SeparateFile( ) - %s" % Format,
+            
             if not os.path.exists( dirpath ) : 
                 os.mkdir( dirpath )    
+            
+            print "..........mkdir( ) - OK"
             
             for fname in flist :
                 tmpcurdirpath = curdirpath + "\\" + fname
@@ -380,12 +385,8 @@ class Action():
             ScanList = {}
             dpath = []
             
-            print "1111111111111111111111111111111"
-            
             for relativepath in os.listdir( dstdir ) :
                 dpath.append( os.path.abspath(relativepath) )
-            
-            print "22222222222222222222222222222222"
             
             for dirpath in dpath :
                 if os.path.isdir( dirpath ) and ( os.path.split(dirpath)[1] in FormatList ) :
@@ -395,8 +396,6 @@ class Action():
                     
                     if OptScan == "*" :
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
-            
-            print "333333333333333333333333333333333"
             
             main = Main()
             if not main.Scan(ScanList, FormatList, log, Errlog) :            
@@ -431,9 +430,15 @@ class Main():
 
     def Scan(self, ScanList, FormatList, log, Errlog):
         try :
+            
+            print "11111111111111111111111111111111111111"
+            
             for Format in FormatList :
                 if ScanList[Format] == [] :
                     continue
+                
+                print "22222222222222222222222222222222222"
+                print Format
                 
                 for fname in ScanList[Format] :
                     File = {}
