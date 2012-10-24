@@ -40,24 +40,24 @@ class FTPServer():
     def ConnectServer(self, FTP, IP, ID, PW):
         try :
             # Connect Network
-            print "[+] Connect Server : %s ( ID : %s ).........." % (IP, ID)
+            print "[+] Connect Server : %s ( ID : %s ).........." % (IP, ID),
             MsgConnect = FTP.connect(IP)
             
             # Failure Connection
             #    - Success Message : 220 (vsFTPd 2.3.5)
             if MsgConnect.find("220") == -1 :
-                print "Failure ( Connect : %s )\n" % MsgConnect
+                print "Failure ( Connect : %s )" % MsgConnect
                 return False
             
             # Failure Connection
             #    - Success Message : 230 Login successful
             MsgConnect = FTP.login(ID, PW)
             if MsgConnect.find("230") == -1 :
-                print "Failure ( Login : %s )\n" % MsgConnect
+                print "Failure ( Login : %s )" % MsgConnect
                 return False
             
             # Success Connection
-            print "Success\n"
+            print "Success"
             
         except :
             print traceback.format_exc()
@@ -68,7 +68,7 @@ class FTPServer():
     
     def Download(self, FTP, Src, Dst):
         try :
-            print "[+] Download......"
+            print "[+] Download......",
             
             if not os.path.isdir( Dst ) :
                 os.mkdir( Dst )
@@ -79,11 +79,13 @@ class FTPServer():
             for nextdir in SrcList :
                 MsgFTP = FTP.cwd(nextdir)
                 if MsgFTP.find("250") == -1 :
-                    print "Failure Change Directory\n"
+                    print "Failure Change Directory"
                     return False            
             
             if not self.DownloadFile(FTP) :
                 return False
+            
+            print "Success"
             
         except :
             print traceback.format_exc()
@@ -106,7 +108,7 @@ class FTPServer():
                         ExtDir.append( DirName )
             
             if ExtDir == [] :
-                print "Folder is not Found\n"
+                print "Folder is not Found"
                 return True
             
 
@@ -175,7 +177,7 @@ class Action():
             dstdir = Options.dst
             
             if not IP or not ID or not PW or not srcdir or not dstdir :
-                print "\n[OptErr] Check please FTP Options"
+                print "   [OptErr] Check please FTP Options"
                 return False    
             
             # Connection FTP Server
@@ -202,7 +204,6 @@ class Action():
             # Separate File Format
             FileList = {}
             print "[+] Check Samples File Format........"
-            print "Into SeparateList()\n"
             if not self.SeparateList(Options, FileList) :
                 return {}
             
@@ -375,6 +376,8 @@ class Action():
             ScanList = {}
             dpath = []
             
+            os.chdir( dstdir ) 
+            
             for relativepath in os.listdir( dstdir ) :
                 dpath.append( os.path.abspath(relativepath) )
             
@@ -458,12 +461,14 @@ if __name__ == '__main__' :
     log = ""
     
     try :
+        print "[*] Start"
+        
         Act = Action()
         
         # Options "Directory"
         if Options.directory :
             if not os.path.isdir( Options.directory ) :
-                print "[OptErr] Check please Directory Options ( %s )" % Options.directory
+                print "    [OptErr] Check please Directory Options ( %s )" % Options.directory
                 exit(-1)
                 
             os.chdir( Options.directory )
@@ -471,8 +476,8 @@ if __name__ == '__main__' :
         
         # Options "DELETE"
         if Options.directory and Options.delete :
-            print "Into Options \"Delete()\"\n"
             if not Act.OptDelete(Options) :
+                print 
                 exit(-1)
     
         sFlag = False
@@ -480,11 +485,9 @@ if __name__ == '__main__' :
     
         # Options "FTP"
         if Options.ip :
-            print "Into Options \"FTP()\"\n"
             if not Act.OptFTP(Options) :
                 exit(-1)
             
-            print "Into Options \"FTP - Categorizer()\"\n"
             FileList = Act.Categorizer(Options)
             if FileList == {} :
                 exit(-1)
@@ -492,7 +495,6 @@ if __name__ == '__main__' :
         
         # Options "Scan"
         if Options.scan :
-            print"Into Options \"Scan()\"\n"
             if Options.dst :
                 dstdir = Options.dst
             elif Options.directory :
@@ -500,13 +502,11 @@ if __name__ == '__main__' :
             else :
                 exit(-1)
             
-            print "Scan() - Categorizer()"
             if sFlag == False :
                 FileList = Act.Categorizer(Options)
                 if FileList == {} :
                     exit(-1)
                         
-            print "Into Options \"Scan - VulScan()\"\n"
             if not Act.VulScan(Options.scan, dstdir, FormatList) :
                 exit(-1)
         
