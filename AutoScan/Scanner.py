@@ -227,7 +227,13 @@ class Action():
             FileList = self.SeparateList(Options, FileList, log, Errlog)
             if FileList == {} :
                 return {}
-                
+            
+            print FileList["PDF"]
+            print FileList["OLE"]
+            print FileList["PE"]
+            print FileList["Unknown"]
+            
+            
             # Separate Samples
             log += "[+] Separate Files.........\n"
             
