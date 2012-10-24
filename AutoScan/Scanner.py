@@ -138,6 +138,8 @@ class FTPServer():
     
     def CloseServer(self, FTP, log, Errlog):
         try :
+            print "555555555555555555555555555555555" 
+            
             FTP.close()
             log += "[+] Terminated FTP Connection\n"
         except :
@@ -190,9 +192,6 @@ class Action():
                 return False    
             
             # Connection FTP Server
-            
-            print "1111111111111111111111111111111"
-            
             FTP = ftplib.FTP()
             Server = FTPServer()
             tmplog = ""
@@ -203,9 +202,6 @@ class Action():
             log += tmplog
             
             # Download Files From FTP Server
-            
-            print "22222222222222222222222222222"
-            
             tmplog = ""
             if not Server.Download(FTP, srcdir, dstdir, log, tmplog) :
                 Errlog += tmplog
@@ -214,9 +210,6 @@ class Action():
             log += tmplog
             
             # Connection Termination
-            
-            print "3333333333333333333333333333333"
-            
             tmplog = ""
             Server.CloseServer(FTP, tmplog)
             log += tmplog
