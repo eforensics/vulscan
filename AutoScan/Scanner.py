@@ -375,14 +375,18 @@ class Action():
         return True
 
 
-    def VulScan(self, OptScan, FormatList, log, Errlog):
+    def VulScan(self, OptScan, dstdir, FormatList, log, Errlog):
         try :
             ScanList = {}
             dpath = []
             
-            for relativepath in os.listdir( os.curdir ) :
+            print "1111111111111111111111111111111"
+            
+            for relativepath in os.listdir( dstdir ) :
                 dpath.append( os.path.abspath(relativepath) )
-                 
+            
+            print "22222222222222222222222222222222"
+            
             for dirpath in dpath :
                 if os.path.isdir( dirpath ) and ( os.path.split(dirpath)[1] in FormatList ) :
                     if (OptScan != "*") and (os.path.split(dirpath)[1] == OptScan) :
@@ -391,6 +395,8 @@ class Action():
                     
                     if OptScan == "*" :
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
+            
+            print "333333333333333333333333333333333"
             
             main = Main()
             if not main.Scan(ScanList, FormatList, log, Errlog) :            
@@ -513,8 +519,13 @@ if __name__ == '__main__' :
                     Errlog += tmplog
                     exit(-1)
             
+            print FileList["PDF"]
+            print FileList["OLE"]
+            print FileList["PE"]
+            print FileList["Unknown"]
+                        
             Errlog = "Into Options \"Scan - VulScan()\"\n"
-            if not Act.VulScan(Options.scan, FormatList, log, tmplog) :
+            if not Act.VulScan(Options.scan, dstdir, FormatList, log, tmplog) :
                 Errlog += tmplog
                 exit(-1)
         
