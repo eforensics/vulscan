@@ -134,19 +134,6 @@ class FTPServer():
             return False
         
         return True
-    
-    
-    def CloseServer(self, FTP, log, Errlog):
-        try :
-            print "555555555555555555555555555555555" 
-            
-            FTP.close()
-            log += "[+] Terminated FTP Connection\n"
-        except :
-            Errlog += traceback.format_exc()
-            return False
-        
-        return True
 
 
 class Action():
@@ -212,8 +199,6 @@ class Action():
             # Connection Termination
             FTP.close()
         
-            print "4444444444444444444444444444444"
-        
             return True
         except :
             Errlog += traceback.format_exc()
@@ -247,16 +232,16 @@ class Action():
             log += "[+] Separate Files.........\n"
             
             Errlog = "Into Separation()\n"
-            if FileList["PDFList"] != [] :
+            if FileList["PDF"] != [] :
                 self.Separation(Options, FileList["PDF"], "PDF", log, Errlog) 
                 
-            if FileList["OLEList"] != [] :
+            if FileList["OLE"] != [] :
                 self.Separation(Options, FileList["OLE"], "OLE", log, Errlog) 
                 
-            if FileList["PEList"] != [] :
+            if FileList["PE"] != [] :
                 self.Separation(Options, FileList["PE"], "PE", log, Errlog)
             
-            if FileList["UnknownList"] != [] :
+            if FileList["Unknown"] != [] :
                 self.Separation(Options, FileList["Unknown"], "unknown", log, Errlog) 
 
             return FileList
