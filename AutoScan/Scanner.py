@@ -17,8 +17,8 @@ class Initialize():
         Parser.add_option('--ip', help='< IP >')
         Parser.add_option('--id', help='< ID >')
         Parser.add_option('--pw', help='< Password >')
-        Parser.add_option('--src', help='< Source Directory in Server >')
-        Parser.add_option('--dst', help='< Destination Directory in Client >')
+        Parser.add_option('--src', help='< Absolutely Source Directory in Server >')
+        Parser.add_option('--dst', help='< Absolutely Destination Directory in Client >')
         
         Parser.add_option('-d', '--directory', help='< Delete Directory >')
         
@@ -269,9 +269,6 @@ class Action():
             main = Main()
             flist = os.listdir( dstdir )
             for fname in flist :
-                print "FileName : ",
-                print fname 
-                
                 if os.path.isdir( fname ) :
                     continue
                 
@@ -285,27 +282,10 @@ class Action():
                 else :
                     UnknownList.append( fname )
             
-                print fname
-            
-            
             FileList["PDF"] = PDFList
             FileList["OLE"] = OLEList
             FileList["PE"] = PEList
             FileList["Unknown"] = UnknownList
-            
-            print "33333333333333333333333333333333333333333"
-            
-            print "[ PDF ]"
-            print PDFList
-            
-            print "[ OLE ]"
-            print OLEList
-            
-            print "[ PE ]"
-            print PEList
-            
-            print "[ Unknown ]"
-            print UnknownList
             
             return True
             
@@ -425,19 +405,22 @@ class Action():
 class Main():
     def CheckFormat(self, fname, log, Errlog):
         try :
+            Format = ""
+            
             pBuf = FileControl.ReadFileByBinary(fname, Errlog)
             if pBuf == "" :
-                return False
+                return Format
             
-            Format = ""
             for FormatFunc in ScanFormatFunc :
                 Format = FormatFunc.Check( pBuf )
                 if Format != "" :
                     break
             
+            return Format
+            
         except :
             Errlog += traceback.format_exc()
-            return False
+            return Format
 
 
     def Scan(self, ScanList, FormatList, log, Errlog):
