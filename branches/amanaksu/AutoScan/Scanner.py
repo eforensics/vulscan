@@ -258,8 +258,6 @@ class Action():
             PEList = []
             UnknownList = []
             
-            print "111111111111111111111111111111111111"
-            
             if Options.dst :
                 dstdir = Options.dst 
             elif Options.directory :
@@ -267,8 +265,6 @@ class Action():
             else :
                 Errlog += "Do not Sample's Directory"
                 return False
-            
-            print "222222222222222222222222222222222222"
             
             main = Main()
             os.chdir( dstdir )
@@ -286,6 +282,9 @@ class Action():
                     PEList.append( fname )
                 else :
                     UnknownList.append( fname )
+            
+                print fname
+            
             
             FileList["PDF"] = PDFList
             FileList["OLE"] = OLEList
