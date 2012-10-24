@@ -267,9 +267,7 @@ class Action():
                 return False
             
             main = Main()
-            print "1111111111111111111111111111111111"
             flist = os.listdir( dstdir )
-            print "222222222222222222222222222222222222"
             for fname in flist :
                 print "FileName : ",
                 print fname 
@@ -427,18 +425,13 @@ class Action():
 class Main():
     def CheckFormat(self, fname, log, Errlog):
         try :
-            File = {}
-            
             pBuf = FileControl.ReadFileByBinary(fname, Errlog)
             if pBuf == "" :
                 return False
             
-            File["fname"] = fname
-            File["pBuf"] = pBuf
-            
             Format = ""
             for FormatFunc in ScanFormatFunc :
-                Format = FormatFunc.Check()
+                Format = FormatFunc.Check( pBuf )
                 if Format != "" :
                     break
             
