@@ -503,6 +503,7 @@ if __name__ == '__main__' :
             if not Act.OptFTP(Options, log, Errlog) :
                 exit(-1)
             
+            Errlog = "Into Options \"FTP - Categorizer()\"\n"
             FileList = Act.Categorizer(Options, log, Errlog)
             if FileList == {} :
                 exit(-1)
@@ -511,7 +512,6 @@ if __name__ == '__main__' :
         # Options "Scan"
         if Options.scan :
             Errlog = "Into Options \"Scan()\"\n"
-            
             if Options.dst :
                 dstdir = Options.dst
             elif Options.directory :
@@ -524,6 +524,7 @@ if __name__ == '__main__' :
                 if FileList == {} :
                     exit(-1)
             
+            Errlog = "Into Options \"Scan - VulScan()\"\n"
             if not Act.VulScan(Options.scan, FormatList, log, Errlog) :
                 exit(-1)
         
