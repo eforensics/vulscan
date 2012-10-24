@@ -327,6 +327,14 @@ class Action():
                         Errlog += fname + "\tFailure : None Format\n"
                         continue
                 
+                print "-" * 30 + "HWPList" + "-" * 30 
+                print HWPList
+                print "-" * 30 + "OfficeList" + "-" * 30
+                print OfficeList
+                
+                if HWPList == [] and OfficeList == [] :
+                    print "None HWPList & OfficeList"
+                                
                 if not self.SeparateFile(dstdir, HWPList, "HWP") :
                     Errlog += fname + "\tFailure : SeparateFile( HWP )"
                 
