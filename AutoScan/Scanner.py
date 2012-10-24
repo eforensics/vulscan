@@ -299,22 +299,22 @@ class Action():
                     
                     if not OLE.OLEHeader(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "\tFailure : OLEHeader()\n" )
+                        ExceptList.append( "Failure : OLEHeader()" )
                         continue
     
                     if not OLE.OLETableSAT(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "\tFailure : OLETableSAT()\n" )
+                        ExceptList.append( "Failure : OLETableSAT()" )
                         continue
     
                     if not OLE.OLETableSSAT(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "\tFailure : OLETableSSAT()\n" )
+                        ExceptList.append( "Failure : OLETableSSAT()" )
                         continue
             
                     if not OLE.OLEDirectory(File) :
                         ExceptList.append( fname )
-                        ExceptList.append( "\tFailure : OLEDirectory()\n" )
+                        ExceptList.append( "Failure : OLEDirectory()" )
                         continue
                     
                     if File["format"] == "Office" :
@@ -322,7 +322,8 @@ class Action():
                     elif File["format"] == "HWP" :
                         HWPList.append( fname )
                     else :
-                        print fname + "\tFailure : None Format\n"
+                        ExceptList.append( fname )
+                        ExceptList.append( "Failure : None Format" )
                         continue
                                 
                 if not self.SeparateFile(dstdir, HWPList, "HWP") :
@@ -415,6 +416,9 @@ class Main():
                     continue
                 
                 for fname in ScanList[Format] :
+                    
+                    os.chdir( Format )
+                    
                     File = {}
                     File["fname"] = fname
                     File["pBuf"] = FileControl.ReadFileByBinary(fname)
