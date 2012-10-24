@@ -122,38 +122,29 @@ class BufferControl():
     
 class FileControl():
     @classmethod
-    def OpenFileByBinary(cls, fname, Errlog):
+    def OpenFileByBinary(cls, fname):
         try : 
             fp = open( fname, 'rb' )
 
         except IOError :
-            if Errlog != None :
-                Errlog += "IOError : %s" % fname
-            else :
-                print "IOError : %s" % fname
+            print "IOError : %s" % fname
         
         except :
-            if Errlog != None :
-                Errlog += traceback.format_exc()
-            else :
-                print traceback.format_exc()
+            print traceback.format_exc()
                             
         return fp
     
     @classmethod
-    def ReadFileByBinary(cls, fname, Errlog):
+    def ReadFileByBinary(cls, fname):
         try :
-            fp = FileControl.OpenFileByBinary(fname, Errlog)
+            fp = FileControl.OpenFileByBinary(fname)
             
             pBuf = "" 
             pBuf = fp.read()
             
             fp.close()
         except :
-            if Errlog != None :
-                Errlog += traceback.format_exc()
-            else :
-                print traceback.format_exc()
+            print traceback.format_exc()
         
         return pBuf
     

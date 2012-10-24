@@ -37,38 +37,38 @@ class Initialize():
 
 
 class FTPServer():
-    def ConnectServer(self, FTP, IP, ID, PW, log, Errlog):
+    def ConnectServer(self, FTP, IP, ID, PW):
         try :
             # Connect Network
-            log += "[+] Connect Server : %s ( ID : %s ).........." % (IP, ID)
+            print "[+] Connect Server : %s ( ID : %s ).........." % (IP, ID)
             MsgConnect = FTP.connect(IP)
             
             # Failure Connection
             #    - Success Message : 220 (vsFTPd 2.3.5)
             if MsgConnect.find("220") == -1 :
-                Errlog += "Failure ( Connect : %s )\n" % MsgConnect
+                print "Failure ( Connect : %s )\n" % MsgConnect
                 return False
             
             # Failure Connection
             #    - Success Message : 230 Login successful
             MsgConnect = FTP.login(ID, PW)
             if MsgConnect.find("230") == -1 :
-                Errlog += "Failure ( Login : %s )\n" % MsgConnect
+                print "Failure ( Login : %s )\n" % MsgConnect
                 return False
             
             # Success Connection
-            log += "Success\n"
+            print "Success\n"
             
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return False
         
         return True
     
     
-    def Download(self, FTP, Src, Dst, log, Errlog):
+    def Download(self, FTP, Src, Dst):
         try :
-            log += "[+] Download......"
+            print "[+] Download......"
             
             if not os.path.isdir( Dst ) :
                 os.mkdir( Dst )
@@ -79,20 +79,20 @@ class FTPServer():
             for nextdir in SrcList :
                 MsgFTP = FTP.cwd(nextdir)
                 if MsgFTP.find("250") == -1 :
-                    Errlog += "Failure Change Directory\n"
+                    print "Failure Change Directory\n"
                     return False            
             
-            if not self.DownloadFile(FTP, log, Errlog) :
+            if not self.DownloadFile(FTP) :
                 return False
             
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return False
         
         return True
     
     
-    def DownloadFile(self, FTP, log, Errlog):
+    def DownloadFile(self, FTP):
         try :
             # Check Target Directory By File Format
             TargetName = ["PDF", "unknown", "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document" \
@@ -106,7 +106,7 @@ class FTPServer():
                         ExtDir.append( DirName )
             
             if ExtDir == [] :
-                Errlog += "Folder is not Found\n"
+                print "Folder is not Found\n"
                 return True
             
 
@@ -116,7 +116,7 @@ class FTPServer():
                 srcpath = SrcPath + "/" + extDir
                 MsgFTP = FTP.cwd( srcpath )
                 if MsgFTP.find("250") == -1 :
-                    Errlog += "Failure Change Directory ( %s )" % extDir
+                    print "Failure Change Directory ( %s )" % extDir
                 
                 # File Download ( From FTP Server To Host PC )
                 flist = FTP.nlst()
@@ -126,18 +126,18 @@ class FTPServer():
                     
                     MsgFTP = FTP.retrlines("RETR " + fname, open(fname, 'wb').write)
                     if MsgFTP.find( "226" ) == -1 :
-                        Errlog += "    %s ( %s )" % ( fname, MsgFTP )
+                        print "    %s ( %s )" % ( fname, MsgFTP )
                         continue
             
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return False
         
         return True
 
 
 class Action():
-    def OptDelete(self, Options, log, Errlog):
+    def OptDelete(self, Options):
         try :           
             ext = os.path.splitext( Options.delete )
             # Case 1. test.ext
@@ -163,10 +163,10 @@ class Action():
             return True
             
         except : 
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return False
 
-    def OptFTP(self, Options, log, Errlog) :
+    def OptFTP(self, Options) :
         try : 
             IP = Options.ip
             ID = Options.id
@@ -175,69 +175,61 @@ class Action():
             dstdir = Options.dst
             
             if not IP or not ID or not PW or not srcdir or not dstdir :
-                Errlog += "\n[OptErr] Check please FTP Options"
+                print "\n[OptErr] Check please FTP Options"
                 return False    
             
             # Connection FTP Server
             FTP = ftplib.FTP()
             Server = FTPServer()
-            tmplog = ""
-            if not Server.ConnectServer(FTP, IP, ID, PW, log, tmplog) :
-                Errlog += tmplog
+            if not Server.ConnectServer(FTP, IP, ID, PW) :
                 return False
-            
-            log += tmplog
             
             # Download Files From FTP Server
-            tmplog = ""
-            if not Server.Download(FTP, srcdir, dstdir, log, tmplog) :
-                Errlog += tmplog
+            if not Server.Download(FTP, srcdir, dstdir) :
                 return False
-            
-            log += tmplog
             
             # Connection Termination
             FTP.close()
         
             return True
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return False
 
 
-    def Categorizer(self, Options, log, Errlog):
+    def Categorizer(self, Options):
         try :    
             # Separate File Format
             FileList = {}
-            log += "[+] Check Samples File Format........"
-            Errlog = "Into SeparateList()\n"
-            if not self.SeparateList(Options, FileList, log, Errlog) :
+            print "[+] Check Samples File Format........"
+            print "Into SeparateList()\n"
+            if not self.SeparateList(Options, FileList) :
                 return {}
             
             # Separate Samples
-            log += "[+] Separate Files.........\n"
+            print "[+] Separate Files.........\n"
             
-            Errlog = "Into Separation()\n"
+            print "Into Separation()\n"
             if FileList["PDF"] != [] :
-                self.Separation(Options, FileList["PDF"], "PDF", log, Errlog) 
+                self.Separation(Options, FileList["PDF"], "PDF") 
                 
             if FileList["OLE"] != [] :
-                self.Separation(Options, FileList["OLE"], "OLE", log, Errlog) 
+                self.Separation(Options, FileList["OLE"], "OLE") 
                 
             if FileList["PE"] != [] :
-                self.Separation(Options, FileList["PE"], "PE", log, Errlog)
+                self.Separation(Options, FileList["PE"], "PE")
             
             if FileList["Unknown"] != [] :
-                self.Separation(Options, FileList["Unknown"], "unknown", log, Errlog) 
+                self.Separation(Options, FileList["Unknown"], "unknown") 
 
             return FileList
         
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return {}
 
 
-    def SeparateList(self, Options, FileList, log, Errlog):
+    def SeparateList(self, Options, FileList):
         try :
             PDFList = []
             OLEList = []
@@ -249,7 +241,7 @@ class Action():
             elif Options.directory :
                 dstdir = Options.directory 
             else :
-                Errlog += "Do not Sample's Directory"
+                print "Do not Sample's Directory"
                 return False
             
             main = Main()
@@ -258,7 +250,7 @@ class Action():
                 if os.path.isdir( fname ) :
                     continue
                 
-                Format = main.CheckFormat(fname, log, Errlog)
+                Format = main.CheckFormat(fname)
                 if Format == "PDF" :
                     PDFList.append( fname )
                 elif Format == "OLE" :
@@ -276,18 +268,18 @@ class Action():
             return True
             
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return False
         
     
-    def Separation(self, Options, FormatList, Format, log, Errlog):
+    def Separation(self, Options, FormatList, Format):
         try : 
             if Options.dst :
                 dstdir = Options.dst 
             elif Options.directory :
                 dstdir = Options.directory 
             else :
-                Errlog += "Do not Sample's Directory"
+                print "Do not Sample's Directory"
                 return []
             
             # Detailed Separation
@@ -328,7 +320,7 @@ class Action():
                     elif File["format"] == "HWP" :
                         HWPList.append( fname )
                     else :
-                        Errlog += fname + "\tFailure : None Format\n"
+                        print fname + "\tFailure : None Format\n"
                         continue
                 
                 print "-" * 30 + "HWPList" + "-" * 30 
@@ -340,24 +332,23 @@ class Action():
                     print "None HWPList & OfficeList"
                                 
                 if not self.SeparateFile(dstdir, HWPList, "HWP") :
-                    Errlog += fname + "\tFailure : SeparateFile( HWP )"
+                    print fname + "\tFailure : SeparateFile( HWP )"
                 
                 if not self.SeparateFile(dstdir, OfficeList, "Office") :
-                    Errlog += fname + "\tFailure : SeparateFile( Office )"
+                    print fname + "\tFailure : SeparateFile( Office )"
                     
             else :
                 if not self.SeparateFile(dstdir, FormatList, Format) :
-                    Errlog += fname + "\tFailure : SeparateFile( %s )" % Format
+                    print fname + "\tFailure : SeparateFile( %s )" % Format
         
         except : 
-            Errlog += fname + "\tException : Separation()"
-            Errlog += traceback.format_exc()
+            print fname + "\tException : Separation()"
+            print traceback.format_exc()
 
 
     def SeparateFile(self, curdirpath, flist, Format):
         try :
             dirpath = curdirpath + "\\" + Format
-            
             
             print "SeparateFile( ) - %s" % Format,
             
@@ -378,7 +369,7 @@ class Action():
         return True
 
 
-    def VulScan(self, OptScan, dstdir, FormatList, log, Errlog):
+    def VulScan(self, OptScan, dstdir, FormatList):
         try :
             ScanList = {}
             dpath = []
@@ -396,21 +387,21 @@ class Action():
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
             
             main = Main()
-            if not main.Scan(ScanList, FormatList, log, Errlog) :            
+            if not main.Scan(ScanList, FormatList) :            
                 return False
             
             return True
         
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
 
 
 class Main():
-    def CheckFormat(self, fname, log, Errlog):
+    def CheckFormat(self, fname):
         try :
             Format = ""
             
-            pBuf = FileControl.ReadFileByBinary(fname, Errlog)
+            pBuf = FileControl.ReadFileByBinary(fname)
             if pBuf == "" :
                 return Format
             
@@ -422,11 +413,11 @@ class Main():
             return Format
             
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return Format
 
 
-    def Scan(self, ScanList, FormatList, log, Errlog):
+    def Scan(self, ScanList, FormatList):
         try :
             for Format in FormatList :
                 if ScanList[Format] == [] :
@@ -438,7 +429,7 @@ class Main():
                     
                     File = {}
                     File["fname"] = fname
-                    File["pBuf"] = FileControl.ReadFileByBinary(fname, Errlog)
+                    File["pBuf"] = FileControl.ReadFileByBinary(fname)
                     if Format == "PDF" :
                         PDFScan.Scan(File)
                         continue
@@ -450,7 +441,7 @@ class Main():
             return True
         
         except :
-            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return False
 
 
@@ -464,9 +455,6 @@ if __name__ == '__main__' :
     
     # Flow log
     log = ""
-    # Except/Error log in to Function
-    Errlog = ""
-    tmplog = ""
     
     try :
         Act = Action()
@@ -474,7 +462,7 @@ if __name__ == '__main__' :
         # Options "Directory"
         if Options.directory :
             if not os.path.isdir( Options.directory ) :
-                Errlog += "[OptErr] Check please Directory Options ( %s )" % Options.directory
+                print "[OptErr] Check please Directory Options ( %s )" % Options.directory
                 exit(-1)
                 
             os.chdir( Options.directory )
@@ -482,9 +470,8 @@ if __name__ == '__main__' :
         
         # Options "DELETE"
         if Options.directory and Options.delete :
-            Errlog = "Into Options \"Delete()\"\n"
-            if not Act.OptDelete(Options, log, tmplog) :
-                Errlog += tmplog
+            print "Into Options \"Delete()\"\n"
+            if not Act.OptDelete(Options) :
                 exit(-1)
     
         sFlag = False
@@ -492,22 +479,19 @@ if __name__ == '__main__' :
     
         # Options "FTP"
         if Options.ip :
-            Errlog = "Into Options \"FTP()\"\n"
-            if not Act.OptFTP(Options, log, tmplog) :
-                Errlog += tmplog
+            print "Into Options \"FTP()\"\n"
+            if not Act.OptFTP(Options) :
                 exit(-1)
             
-            Errlog = "Into Options \"FTP - Categorizer()\"\n"
-            print "FTP() - Categorizer()"
-            FileList = Act.Categorizer(Options, log, tmplog)
+            print "Into Options \"FTP - Categorizer()\"\n"
+            FileList = Act.Categorizer(Options)
             if FileList == {} :
-                Errlog += tmplog
                 exit(-1)
             sFlag = True
         
         # Options "Scan"
         if Options.scan :
-            Errlog = "Into Options \"Scan()\"\n"
+            print"Into Options \"Scan()\"\n"
             if Options.dst :
                 dstdir = Options.dst
             elif Options.directory :
@@ -517,19 +501,17 @@ if __name__ == '__main__' :
             
             print "Scan() - Categorizer()"
             if sFlag == False :
-                FileList = Act.Categorizer(Options, log, tmplog)
+                FileList = Act.Categorizer(Options)
                 if FileList == {} :
-                    Errlog += tmplog
                     exit(-1)
                         
-            Errlog = "Into Options \"Scan - VulScan()\"\n"
-            if not Act.VulScan(Options.scan, dstdir, FormatList, log, tmplog) :
-                Errlog += tmplog
+            print "Into Options \"Scan - VulScan()\"\n"
+            if not Act.VulScan(Options.scan, dstdir, FormatList) :
                 exit(-1)
         
         
         # Reault Log
-        log += "=" * 70 + "\n" \
+        print "=" * 70 + "\n" \
             + "     Result\n" \
             + "-" * 70 + "\n" \
             + "  PDF Files       : %d\n" % len(FileList["PDF"]) \
@@ -540,22 +522,17 @@ if __name__ == '__main__' :
             + "-" * 70 + "\n"
         
 #        if len(ExceptList) :
-#            log += "  Except Files : %d\n" % (len(ExceptList)/2) \
+#            print "  Except Files : %d\n" % (len(ExceptList)/2) \
 #                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
 #            
 #            index = 0
 #            while index < len(ExceptList) :
-#                log += "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
+#                print "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
 #                index += 2
                 
     
     except :
-        Errlog += "\n" + traceback.format_exc()
-        print Errlog
-    
-    finally :
-        print log
-        
+        print traceback.format_exc()
     
     exit(0)
         
