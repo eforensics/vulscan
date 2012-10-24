@@ -521,11 +521,6 @@ if __name__ == '__main__' :
                 if FileList == {} :
                     Errlog += tmplog
                     exit(-1)
-            
-            print FileList["PDF"]
-            print FileList["OLE"]
-            print FileList["PE"]
-            print FileList["Unknown"]
                         
             Errlog = "Into Options \"Scan - VulScan()\"\n"
             if not Act.VulScan(Options.scan, dstdir, FormatList, log, tmplog) :
