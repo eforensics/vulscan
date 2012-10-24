@@ -210,10 +210,7 @@ class Action():
             log += tmplog
             
             # Connection Termination
-            tmplog = ""
-            Server.CloseServer(FTP, tmplog)
-            log += tmplog
-        
+            FTP.close()
         
             print "4444444444444444444444444444444"
         
