@@ -227,12 +227,6 @@ class Action():
             if not self.SeparateList(Options, FileList, log, Errlog) :
                 return {}
             
-            print FileList["PDF"]
-            print FileList["OLE"]
-            print FileList["PE"]
-            print FileList["Unknown"]
-            
-            
             # Separate Samples
             log += "[+] Separate Files.........\n"
             
@@ -264,6 +258,8 @@ class Action():
             PEList = []
             UnknownList = []
             
+            print "111111111111111111111111111111111111"
+            
             if Options.dst :
                 dstdir = Options.dst 
             elif Options.directory :
@@ -271,6 +267,8 @@ class Action():
             else :
                 Errlog += "Do not Sample's Directory"
                 return False
+            
+            print "222222222222222222222222222222222222"
             
             main = Main()
             os.chdir( dstdir )
@@ -293,6 +291,20 @@ class Action():
             FileList["OLE"] = OLEList
             FileList["PE"] = PEList
             FileList["Unknown"] = UnknownList
+            
+            print "33333333333333333333333333333333333333333"
+            
+            print "[ PDF ]"
+            print PDFList
+            
+            print "[ OLE ]"
+            print OLEList
+            
+            print "[ PE ]"
+            print PEList
+            
+            print "[ Unknown ]"
+            print UnknownList
             
             return True
             
