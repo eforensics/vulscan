@@ -260,7 +260,8 @@ class Action():
             return FileList
         
         except :
-            Errlog += traceback.format_exc()
+#            Errlog += traceback.format_exc()
+            print traceback.format_exc()
             return {}
 
 
@@ -475,6 +476,7 @@ if __name__ == '__main__' :
     log = ""
     # Except/Error log in to Function
     Errlog = ""
+    tmplog = ""
     
     try :
         Act = Action()
@@ -491,7 +493,8 @@ if __name__ == '__main__' :
         # Options "DELETE"
         if Options.directory and Options.delete :
             Errlog = "Into Options \"Delete()\"\n"
-            if not Act.OptDelete(Options, log, Errlog) :
+            if not Act.OptDelete(Options, log, tmplog) :
+                Errlog += tmplog
                 exit(-1)
     
     
@@ -500,12 +503,14 @@ if __name__ == '__main__' :
         # Options "FTP"
         if Options.ip :
             Errlog = "Into Options \"FTP()\"\n"
-            if not Act.OptFTP(Options, log, Errlog) :
+            if not Act.OptFTP(Options, log, tmplog) :
+                Errlog += tmplog
                 exit(-1)
             
             Errlog = "Into Options \"FTP - Categorizer()\"\n"
-            FileList = Act.Categorizer(Options, log, Errlog)
+            FileList = Act.Categorizer(Options, log, tmplog)
             if FileList == {} :
+                Errlog += tmplog
                 exit(-1)
         
         
@@ -519,13 +524,15 @@ if __name__ == '__main__' :
             else :
                 exit(-1)
             
-            if not Act.isCategorizer(dstdir, FormatList, Errlog) :
-                FileList = Act.Categorizer(Options, log, Errlog)
+            if not Act.isCategorizer(dstdir, FormatList, tmplog) :
+                FileList = Act.Categorizer(Options, log, tmplog)
                 if FileList == {} :
+                    Errlog += tmplog
                     exit(-1)
             
             Errlog = "Into Options \"Scan - VulScan()\"\n"
-            if not Act.VulScan(Options.scan, FormatList, log, Errlog) :
+            if not Act.VulScan(Options.scan, FormatList, log, tmplog) :
+                Errlog += tmplog
                 exit(-1)
         
         
