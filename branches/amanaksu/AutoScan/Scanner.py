@@ -304,19 +304,23 @@ class Action():
                     OLE = OLEStruct( File )
                     
                     if not OLE.OLEHeader(File) :
-                        Errlog += fname + "\tFailure : OLEHeader()\n"
+                        print fname,
+                        print "\tFailure : OLEHeader()\n"
                         continue
     
                     if not OLE.OLETableSAT(File) :
-                        Errlog += fname + "\tFailure : OLETableSAT()\n"
+                        print fname,
+                        print "\tFailure : OLETableSAT()\n"
                         continue
     
                     if not OLE.OLETableSSAT(File) :
-                        Errlog += fname + "\tFailure : OLETableSSAT()\n"
+                        print fname,
+                        print "\tFailure : OLETableSSAT()\n"
                         continue
             
                     if not OLE.OLEDirectory(File) :
-                        Errlog += fname + "\tFailure : OLEDirectory()\n"
+                        print fname,
+                        print "\tFailure : OLEDirectory()\n"
                         continue
                     
                     if File["format"] == "Office" :
