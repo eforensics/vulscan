@@ -428,25 +428,23 @@ class Main():
 
     def Scan(self, ScanList, FormatList, log, Errlog):
         try :
-            
-            print "11111111111111111111111111111111111111"
-            
             for Format in FormatList :
                 if ScanList[Format] == [] :
                     continue
                 
-                print "22222222222222222222222222222222222"
-                print Format
-                
                 for fname in ScanList[Format] :
+                    
+                    print fname
+                    
                     File = {}
                     File["fname"] = fname
                     File["pBuf"] = FileControl.ReadFileByBinary(fname, Errlog)
                     if Format == "PDF" :
                         PDFScan.Scan(File)
-                    elif Format == "OLE" :
+                        continue
+                    
+                    if Format == "OLE" :
                         OLEScan.Scan(File)
-                    else :
                         continue
             
             return True
