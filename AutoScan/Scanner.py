@@ -203,15 +203,13 @@ class Action():
         try :    
             # Separate File Format
             FileList = {}
-            print "[+] Check Samples File Format........"
+            print "[+] Check Samples File Format........",
             if not self.SeparateList(Options, FileList) :
                 return {}
             
             # Separate Samples
             FileList["Except"] = []
-            print "[+] Separate Files.........\n"
             
-            print "Into Separation()\n"
             if FileList["PDF"] != [] :
                 self.Separation(Options, FileList["PDF"], "PDF", FileList["Except"]) 
                 
@@ -224,6 +222,7 @@ class Action():
             if FileList["Unknown"] != [] :
                 self.Separation(Options, FileList["Unknown"], "unknown", FileList["Except"]) 
 
+            print "Success"
             return FileList
         
         except :
@@ -324,14 +323,6 @@ class Action():
                     else :
                         print fname + "\tFailure : None Format\n"
                         continue
-                
-                print "-" * 30 + "HWPList" + "-" * 30 
-                print HWPList
-                print "-" * 30 + "OfficeList" + "-" * 30
-                print OfficeList
-                
-                if HWPList == [] and OfficeList == [] :
-                    print "None HWPList & OfficeList"
                                 
                 if not self.SeparateFile(dstdir, HWPList, "HWP") :
                     print fname + "\tFailure : SeparateFile( HWP )"
@@ -428,9 +419,6 @@ class Main():
                     continue
                 
                 for fname in ScanList[Format] :
-                    
-                    print fname
-                    
                     File = {}
                     File["fname"] = fname
                     File["pBuf"] = FileControl.ReadFileByBinary(fname)
@@ -509,31 +497,32 @@ if __name__ == '__main__' :
                         
             if not Act.VulScan(Options.scan, dstdir, FormatList) :
                 exit(-1)
-        
-        
-        # Reault Log
-        print "=" * 70 + "\n" \
-            + "     Result\n" \
-            + "-" * 70 + "\n" \
-            + "  PDF Files       : %d\n" % len(FileList["PDF"]) \
-            + "  OLE Files       : %d\n" % len(FileList["OLE"]) \
-            + "  PE Files        : %d\n" % len(FileList["PE"]) \
-            + "  Unknown Files   : %d\n" % len(FileList["Unknown"]) \
-            + "\n  File Count      : %d\n" % (len(FileList["PDF"]) + len(FileList["OLE"]) + len(FileList["PE"]) + len(FileList["Unknown"])) \
-            + "-" * 70 + "\n"
-        
-        ExceptList = FileList["Except"]
-        if len(ExceptList) :
-            print "  Except Files : %d\n" % (len(ExceptList)/2) \
-                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
-            
-            index = 0
-            while index < len(ExceptList) :
-                print "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
-                index += 2
             
     except :
         print traceback.format_exc()
+    
+
+    # Reault Log
+    log = ""
+    log = "=" * 70 + "\n" \
+        + "     Result\n" \
+        + "-" * 70 + "\n" \
+        + "  PDF Files       : %d\n" % len(FileList["PDF"]) \
+        + "  OLE Files       : %d\n" % len(FileList["OLE"]) \
+        + "  PE Files        : %d\n" % len(FileList["PE"]) \
+        + "  Unknown Files   : %d\n" % len(FileList["Unknown"]) \
+        + "\n  File Count      : %d\n" % (len(FileList["PDF"]) + len(FileList["OLE"]) + len(FileList["PE"]) + len(FileList["Unknown"])) \
+        + "-" * 70 + "\n"
+        
+    ExceptList = FileList["Except"]
+    if len(ExceptList) :
+        log += "  Except Files : %d\n" % (len(ExceptList)/2) \
+            + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
+            
+        index = 0
+        while index < len(ExceptList) :
+            log += "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
+            index += 2
     
     exit(0)
         
