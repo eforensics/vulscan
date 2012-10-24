@@ -203,7 +203,7 @@ class Action():
         try :    
             # Separate File Format
             FileList = {}
-            print "[+] Check Samples File Format........",
+            print "[+] Check Samples File Format"
             if not self.SeparateList(Options, FileList) :
                 return {}
             
@@ -222,7 +222,8 @@ class Action():
             if FileList["Unknown"] != [] :
                 self.Separation(Options, FileList["Unknown"], "unknown", FileList["Except"]) 
 
-            print "Success"
+            print FileList["Except"]
+
             return FileList
         
         except :
@@ -342,13 +343,8 @@ class Action():
     def SeparateFile(self, curdirpath, flist, Format):
         try :
             dirpath = curdirpath + "\\" + Format
-            
-            print "SeparateFile( ) - %s" % Format,
-            
             if not os.path.exists( dirpath ) : 
                 os.mkdir( dirpath )    
-            
-            print "..........mkdir( ) - OK"
             
             for fname in flist :
                 tmpcurdirpath = curdirpath + "\\" + fname
@@ -469,18 +465,19 @@ if __name__ == '__main__' :
                 exit(-1)
     
         sFlag = False
-        FormatList = ["PDF", "OLE"]
     
         # Options "FTP"
         if Options.ip :
             if not Act.OptFTP(Options) :
                 exit(-1)
-            
+                
+            sFlag = True
             FileList = Act.Categorizer(Options)
             if FileList == {} :
                 exit(-1)
-            sFlag = True
+
         
+        FormatList = ["PDF", "OLE"]
         # Options "Scan"
         if Options.scan :
             if Options.dst :
@@ -501,31 +498,30 @@ if __name__ == '__main__' :
     except :
         print traceback.format_exc()
     
-
-    # Reault Log
-    log = ""
-    log = "=" * 70 + "\n" \
-        + "     Result\n" \
-        + "-" * 70 + "\n" \
-        + "  PDF Files       : %d\n" % len(FileList["PDF"]) \
-        + "  OLE Files       : %d\n" % len(FileList["OLE"]) \
-        + "  PE Files        : %d\n" % len(FileList["PE"]) \
-        + "  Unknown Files   : %d\n" % len(FileList["Unknown"]) \
-        + "\n  File Count      : %d\n" % (len(FileList["PDF"]) + len(FileList["OLE"]) + len(FileList["PE"]) + len(FileList["Unknown"])) \
-        + "-" * 70 + "\n"
-        
-    ExceptList = FileList["Except"]
-    if len(ExceptList) :
-        log += "  Except Files : %d\n" % (len(ExceptList)/2) \
-            + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
+    finally: 
+        # Reault Log
+        log = ""
+        log = "=" * 70 + "\n" \
+            + "     Result\n" \
+            + "-" * 70 + "\n" \
+            + "  PDF Files       : %d\n" % len(FileList["PDF"]) \
+            + "  OLE Files       : %d\n" % len(FileList["OLE"]) \
+            + "  PE Files        : %d\n" % len(FileList["PE"]) \
+            + "  Unknown Files   : %d\n" % len(FileList["Unknown"]) \
+            + "\n  File Count      : %d\n" % (len(FileList["PDF"]) + len(FileList["OLE"]) + len(FileList["PE"]) + len(FileList["Unknown"])) \
+            + "-" * 70 + "\n"
             
-        index = 0
-        while index < len(ExceptList) :
-            log += "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
-            index += 2
+        ExceptList = FileList["Except"]
+        if len(ExceptList) :
+            log += "  Except Files : %d\n" % (len(ExceptList)/2) \
+                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
+                
+            index = 0
+            while index < len(ExceptList) :
+                log += "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
+                index += 2
     
     exit(0)
-        
         
     
     
