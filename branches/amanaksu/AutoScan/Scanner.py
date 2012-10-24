@@ -222,8 +222,6 @@ class Action():
             if FileList["Unknown"] != [] :
                 self.Separation(Options, FileList["Unknown"], "unknown", FileList["Except"]) 
 
-            print FileList["Except"]
-
             return FileList
         
         except :
@@ -415,13 +413,14 @@ class Main():
                 if ScanList[Format] == [] :
                     continue
                 
+                os.chdir( Format )
+                
                 for fname in ScanList[Format] :
-                    
-                    os.chdir( Format )
-                    
                     File = {}
                     File["fname"] = fname
                     File["pBuf"] = FileControl.ReadFileByBinary(fname)
+                    File["logbuf"] = ""
+                    
                     if Format == "PDF" :
                         PDFScan.Scan(File)
                         continue
