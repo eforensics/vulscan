@@ -267,9 +267,13 @@ class Action():
                 return False
             
             main = Main()
-            os.chdir( dstdir )
-            flist = os.listdir( os.curdir )
+            print "1111111111111111111111111111111111"
+            flist = os.listdir( dstdir )
+            print "222222222222222222222222222222222222"
             for fname in flist :
+                print "FileName : ",
+                print fname 
+                
                 if os.path.isdir( fname ) :
                     continue
                 
