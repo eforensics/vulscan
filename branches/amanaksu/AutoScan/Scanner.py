@@ -224,8 +224,7 @@ class Action():
             FileList = {}
             log += "[+] Check Samples File Format........"
             Errlog = "Into SeparateList()\n"
-            FileList = self.SeparateList(Options, FileList, log, Errlog)
-            if FileList == {} :
+            if not self.SeparateList(Options, FileList, log, Errlog) :
                 return {}
             
             print FileList["PDF"]
@@ -271,7 +270,7 @@ class Action():
                 dstdir = Options.directory 
             else :
                 Errlog += "Do not Sample's Directory"
-                return []
+                return False
             
             main = Main()
             os.chdir( dstdir )
@@ -295,11 +294,11 @@ class Action():
             FileList["PE"] = PEList
             FileList["Unknown"] = UnknownList
             
-            return FileList
+            return True
             
         except :
             Errlog += traceback.format_exc()
-            return []
+            return False
         
     
     def Separation(self, Options, FormatList, Format, log, Errlog):
