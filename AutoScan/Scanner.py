@@ -207,20 +207,21 @@ class Action():
                 return {}
             
             # Separate Samples
+            FileList["Except"] = []
             print "[+] Separate Files.........\n"
             
             print "Into Separation()\n"
             if FileList["PDF"] != [] :
-                self.Separation(Options, FileList["PDF"], "PDF") 
+                self.Separation(Options, FileList["PDF"], "PDF", FileList["Except"]) 
                 
             if FileList["OLE"] != [] :
-                self.Separation(Options, FileList["OLE"], "OLE") 
+                self.Separation(Options, FileList["OLE"], "OLE", FileList["Except"]) 
                 
             if FileList["PE"] != [] :
-                self.Separation(Options, FileList["PE"], "PE")
+                self.Separation(Options, FileList["PE"], "PE", FileList["Except"])
             
             if FileList["Unknown"] != [] :
-                self.Separation(Options, FileList["Unknown"], "unknown") 
+                self.Separation(Options, FileList["Unknown"], "unknown", FileList["Except"]) 
 
             return FileList
         
@@ -272,7 +273,7 @@ class Action():
             return False
         
     
-    def Separation(self, Options, FormatList, Format):
+    def Separation(self, Options, FormatList, Format, ExceptList):
         try : 
             if Options.dst :
                 dstdir = Options.dst 
@@ -296,23 +297,23 @@ class Action():
                     OLE = OLEStruct( File )
                     
                     if not OLE.OLEHeader(File) :
-                        print fname,
-                        print "\tFailure : OLEHeader()\n"
+                        ExceptList.append( fname )
+                        ExceptList.append( "\tFailure : OLEHeader()\n" )
                         continue
     
                     if not OLE.OLETableSAT(File) :
-                        print fname,
-                        print "\tFailure : OLETableSAT()\n"
+                        ExceptList.append( fname )
+                        ExceptList.append( "\tFailure : OLETableSAT()\n" )
                         continue
     
                     if not OLE.OLETableSSAT(File) :
-                        print fname,
-                        print "\tFailure : OLETableSSAT()\n"
+                        ExceptList.append( fname )
+                        ExceptList.append( "\tFailure : OLETableSSAT()\n" )
                         continue
             
                     if not OLE.OLEDirectory(File) :
-                        print fname,
-                        print "\tFailure : OLEDirectory()\n"
+                        ExceptList.append( fname )
+                        ExceptList.append( "\tFailure : OLEDirectory()\n" )
                         continue
                     
                     if File["format"] == "Office" :
@@ -521,16 +522,16 @@ if __name__ == '__main__' :
             + "\n  File Count      : %d\n" % (len(FileList["PDF"]) + len(FileList["OLE"]) + len(FileList["PE"]) + len(FileList["Unknown"])) \
             + "-" * 70 + "\n"
         
-#        if len(ExceptList) :
-#            print "  Except Files : %d\n" % (len(ExceptList)/2) \
-#                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
-#            
-#            index = 0
-#            while index < len(ExceptList) :
-#                print "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
-#                index += 2
-                
-    
+        ExceptList = FileList["Except"]
+        if len(ExceptList) :
+            print "  Except Files : %d\n" % (len(ExceptList)/2) \
+                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
+            
+            index = 0
+            while index < len(ExceptList) :
+                print "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
+                index += 2
+            
     except :
         print traceback.format_exc()
     
