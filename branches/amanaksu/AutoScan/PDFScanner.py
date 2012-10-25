@@ -236,15 +236,18 @@ class PDFSearch():
 #                Filters : /FlateDecode, /ASCIIHexDecode, /ASCII85Decode, /LZWDecode, /RunLengthDecode
                 Decode = DecodeControl()
                 if Dict.find('/FlateDecode') != -1 or Dict.find('/Fl') != -1:
-                    streamContent = Decode.FlateDecode(File["fname"], stream)
-                    if streamContent == "" :
-                        ConvertData = ""
-                        for offset in range( len(stream) / 2 ) : 
-                            bData = stream[offset*2:offset*2+2]
-                            ConvertData += binascii.a2b_hex( bData )
-
-                        stream = ConvertData
-                        streamContent = Decode.FlateDecode(File["fname"], stream)  
+                    try :
+                        streamContent = Decode.FlateDecode(File["fname"], stream)
+                        if streamContent == "" :
+                            ConvertData = ""
+                            for offset in range( len(stream) / 2 ) : 
+                                bData = stream[offset*2:offset*2+2]
+                                ConvertData += binascii.a2b_hex( bData )
+    
+                            stream = ConvertData
+                            streamContent = Decode.FlateDecode(File["fname"], stream)  
+                    except :
+                        streamContent = Decode.FlateDecode2(File["fname"], stream)
             
                 elif Dict.find('/ASCII85Decode') != -1 :
                     try :
@@ -280,7 +283,9 @@ class PDFSearch():
                     ElementList.append( streamDict[1] )
         
         except TypeError :
-            print "bData : %s" % bData
+            print "bData : ",
+            print type( bData )
+            print bData
                        
         except :
             print traceback.format_exc()

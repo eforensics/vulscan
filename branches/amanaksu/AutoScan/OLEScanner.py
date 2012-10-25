@@ -215,15 +215,19 @@ class OLEStruct():
             while True :
                 Sector += BufferControl.ReadSectorByBuffer(pBuf, SecID, Size)
                 SecID = table[SecID]
-                if SecID == 0xffffffff or SecID == 0xfffffffe or SecID == 0xfffffffd or SecID == 0xfffffffc :
+                if SecID == 0xffffffff or SecID == 0xfffffffe or SecID == 0xfffffffd or SecID == 0xfffffffc :    
                     break
                 
                 if SecID > len(table) :
-                    print "   %s ( Over SecID : %d / %d) - Suspicious" % (fname, SecID, len(table))
+                    print "   %s ( Over SecID : %x / %x) - Suspicious" % (fname, SecID, len(table))
                     break
 
         except IndexError :
-            print "%s ( SecID : %x )" % (fname, SecID)
+            print "   [IndexError] %s ( SecID : %x / szTable : %x)" % (fname, SecID, len(table))
+            
+            wName = "[TableIndex] %s_%x.dump" % (fname, SecID)
+            OutBuf = BufferControl.ConvertList2Binary( table )
+            FileControl.WriteFile(wName, OutBuf)
                 
         except :
             print traceback.format_exc()
