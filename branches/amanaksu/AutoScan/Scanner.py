@@ -422,10 +422,12 @@ class Main():
                     File["logbuf"] = ""
                     
                     if Format == "PDF" :
+                        File["format"] = "PDF"
                         PDFScan.Scan(File)
                         continue
                     
                     if Format == "OLE" :
+                        File["format"] = "OLE"
                         OLEScan.Scan(File)
                         continue
             
