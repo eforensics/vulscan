@@ -420,14 +420,13 @@ class Main():
                     File["fname"] = fname
                     File["pBuf"] = FileControl.ReadFileByBinary(fname)
                     File["logbuf"] = ""
-                    
-                    if Format == "PDF" :
-                        File["format"] = "PDF"
+                    File["format"] = Format
+                                        
+                    if Format == "PDF" :    
                         PDFScan.Scan(File)
                         continue
                     
-                    if Format == "OLE" :
-                        File["format"] = "OLE"
+                    if Format == "Office" or Format == "HWP" :
                         OLEScan.Scan(File)
                         continue
             
