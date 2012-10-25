@@ -215,7 +215,8 @@ class OLEStruct():
             while True :
                 Sector += BufferControl.ReadSectorByBuffer(pBuf, SecID, Size)
                 SecID = table[SecID]
-                if SecID == 0xffffffff or SecID == 0xfffffffe or SecID == 0xfffffffd or SecID == 0xfffffffc :    
+                
+                if SecID in ExceptSecID :
                     break
                 
                 if SecID > len(table) :
@@ -225,7 +226,7 @@ class OLEStruct():
         except IndexError :
             print "   [IndexError] %s ( SecID : %x / szTable : %x)" % (fname, SecID, len(table))
             
-            wName = "[TableIndex] %s_%x.dump" % (fname, SecID)
+            wName = "%s_%x_TableIndexError.dump" % (fname, SecID)
             OutBuf = BufferControl.ConvertList2Binary( table )
             FileControl.WriteFile(wName, OutBuf)
                 
@@ -234,6 +235,7 @@ class OLEStruct():
         
         return Sector    
 
+ExceptSecID = [0xffffffff, 0xfffffffe, 0xfffffffd, 0xfffffffc, 0xfeffffff, 0xfdffffff, 0xfcffffff]
 
 
 class MappedOLE():
