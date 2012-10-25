@@ -362,10 +362,7 @@ class Action():
             ScanList = {}
             
             os.chdir( dstdir ) 
-            
-#            for relativepath in os.listdir( dstdir ) :
-#                dpath.append( os.path.abspath(relativepath) )
-#            
+             
             for dirpath in os.listdir( dstdir ) :
                 if os.path.isdir( dirpath ) and ( os.path.split(dirpath)[1] in FormatList ) :
                     if (OptScan != "*") and (os.path.split(dirpath)[1] == OptScan) :
@@ -485,7 +482,7 @@ if __name__ == '__main__' :
                 exit(-1)
 
         
-        FormatList = ["PDF", "OLE"]
+        FormatList = ["PDF", "Office", "HWP"]
         # Options "Scan"
         if Options.scan :
             if Options.dst :
