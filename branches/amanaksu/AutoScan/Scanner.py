@@ -517,11 +517,11 @@ if __name__ == '__main__' :
         ExceptList = FileList["Except"]
         if len(ExceptList) :
             log += "  Except Files : %d\n" % (len(ExceptList)/2) \
-                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
+                + "\n  [ File Name ]\t\t\t\t\t[ Description ]\n"
                 
             index = 0
             while index < len(ExceptList) :
-                log += "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
+                log += "  %s\t%s\n" % (ExceptList[index], ExceptList[index+1])
                 index += 2
     
         print log
