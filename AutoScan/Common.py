@@ -97,6 +97,10 @@ class BufferControl():
                     Buf += "\n"
                     chCount = 0
     
+            Buf += "\n" + "=" * 50 + "\n" + "-" * 50
+            Buf += "Table Count : %d" % len(List)
+            Buf += "\n" + "-" * 50
+    
         except :
             print traceback.format_exc()
     
