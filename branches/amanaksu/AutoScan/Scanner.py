@@ -360,14 +360,13 @@ class Action():
     def VulScan(self, OptScan, dstdir, FormatList):
         try :
             ScanList = {}
-            dpath = []
             
             os.chdir( dstdir ) 
             
-            for relativepath in os.listdir( dstdir ) :
-                dpath.append( os.path.abspath(relativepath) )
-            
-            for dirpath in dpath :
+#            for relativepath in os.listdir( dstdir ) :
+#                dpath.append( os.path.abspath(relativepath) )
+#            
+            for dirpath in os.listdir( dstdir ) :
                 if os.path.isdir( dirpath ) and ( os.path.split(dirpath)[1] in FormatList ) :
                     if (OptScan != "*") and (os.path.split(dirpath)[1] == OptScan) :
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
