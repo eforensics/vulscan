@@ -85,6 +85,25 @@ class BufferControl():
     
     
     @classmethod
+    def ConvertList2Binary(cls, List):
+        try :
+            Buf = ""
+            chCount = 0
+            
+            for data in List :
+                Buf += hex(data) + " "
+                chCount += 1
+                if chCount == 15 :
+                    Buf += "\n"
+                    chCount = 0
+    
+        except :
+            print traceback.format_exc()
+    
+        return Buf
+    
+    
+    @classmethod
     def ExtractAlphaNumber(cls, pBuf):
         try :
             Pattern = string.letters + string.digits
@@ -177,13 +196,9 @@ class DecodeControl():
             if ord( stream[0] ) == 13 and ord( stream[1] ) == 10 :      stream = stream[2:]
             if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]          
             
-#            out = zlib.decompress(stream)
-#            if out != "" : 
-#                return out 
-                        
-            out = zlib.decompress(stream.strip("\r").strip("\n"))
-            if out != "" :
-                return out
+            out = zlib.decompress(stream)
+            if out != "" : 
+                return out 
             
         except zlib.error :
             FileControl.WriteFile("%s_Zlib_0x%02X_0x%02X_%d.dump" % (fname, ord(stream[0]), ord(stream[1]), len(stream)), stream)
@@ -197,6 +212,20 @@ class DecodeControl():
             print traceback.format_exc()
             return out
         
+    def FlateDecode2(self, fname, stream):
+        try :
+            out = ""
+            
+            if ord( stream[0] ) == 13 and ord( stream[1] ) == 10 :      stream = stream[2:]
+            if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]
+             
+            out = zlib.decompress(stream.strip("\r").strip("\n"))
+            if out != "" :
+                return out
+            
+        except :
+            print traceback.format_exc()
+            return out
         
     def ASCII85Decode2(self, fname, stream):
         n = b = 0
