@@ -371,7 +371,6 @@ class Action():
                 if os.path.isdir( dirpath ) and ( os.path.split(dirpath)[1] in FormatList ) :
                     if (OptScan != "*") and (os.path.split(dirpath)[1] == OptScan) :
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
-                        break
                     
                     if OptScan == "*" :
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
@@ -432,6 +431,9 @@ class Main():
                         continue
             
             return True
+        
+        except KeyError :
+            print Format
         
         except :
             print traceback.format_exc()
