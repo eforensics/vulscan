@@ -211,16 +211,16 @@ class Action():
             FileList["Except"] = []
             
             if FileList["PDF"] != [] :
-                self.Separation(Options, FileList["PDF"], "PDF", FileList["Except"]) 
+                self.Separation(Options, FileList, FileList["PDF"], "PDF", FileList["Except"]) 
                 
             if FileList["OLE"] != [] :
-                self.Separation(Options, FileList["OLE"], "OLE", FileList["Except"]) 
+                self.Separation(Options, FileList, FileList["OLE"], "OLE", FileList["Except"]) 
                 
             if FileList["PE"] != [] :
-                self.Separation(Options, FileList["PE"], "PE", FileList["Except"])
+                self.Separation(Options, FileList, FileList["PE"], "PE", FileList["Except"])
             
             if FileList["Unknown"] != [] :
-                self.Separation(Options, FileList["Unknown"], "unknown", FileList["Except"]) 
+                self.Separation(Options, FileList, FileList["Unknown"], "unknown", FileList["Except"]) 
 
             return FileList
         
@@ -272,7 +272,7 @@ class Action():
             return False
         
     
-    def Separation(self, Options, FormatList, Format, ExceptList):
+    def Separation(self, Options, FileList, FormatList, Format, ExceptList):
         try : 
             if Options.dst :
                 dstdir = Options.dst 
@@ -323,10 +323,12 @@ class Action():
                         ExceptList.append( fname )
                         ExceptList.append( "Failure : None Format" )
                         continue
-                                
+                
+                FileList["HWP"] = HWPList
                 if not self.SeparateFile(dstdir, HWPList, "HWP") :
                     print fname + "\tFailure : SeparateFile( HWP )"
                 
+                FileList["Office"] = OfficeList
                 if not self.SeparateFile(dstdir, OfficeList, "Office") :
                     print fname + "\tFailure : SeparateFile( Office )"
                     
@@ -519,6 +521,8 @@ if __name__ == '__main__' :
             while index < len(ExceptList) :
                 log += "  %s\t%s" % (ExceptList[index], ExceptList[index+1])
                 index += 2
+    
+        print log
     
     exit(0)
         
