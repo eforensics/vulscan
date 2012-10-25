@@ -372,11 +372,6 @@ class Action():
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
             
             main = Main()
-            
-            for Format in FormatList :
-                print Format
-                print ScanList[Format]
-            
             if not main.Scan(ScanList, FormatList) :            
                 return False
             

@@ -224,7 +224,7 @@ class OLEStruct():
                     break
 
         except IndexError :
-            print "   [IndexError] %s ( SecID : %x / szTable : %x)" % (fname, SecID, len(table))
+            print "   %s ( SecID : %x / szTable : %x) - IndexError" % (fname, SecID, len(table))
             
             wName = "%s_%x_TableIndexError.dump" % (fname, SecID)
             OutBuf = BufferControl.ConvertList2Binary( table )
