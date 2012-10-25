@@ -221,6 +221,9 @@ class OLEStruct():
                 if SecID > len(table) :
                     print "   %s ( Over SecID : %d / %d) - Suspicious" % (fname, SecID, len(table))
                     break
+
+        except IndexError :
+            print "%s ( SecID : %d )" % (fname, SecID)
                 
         except :
             print traceback.format_exc()
