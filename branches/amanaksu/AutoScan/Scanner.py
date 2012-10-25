@@ -507,6 +507,8 @@ if __name__ == '__main__' :
             + "-" * 70 + "\n" \
             + "  PDF Files       : %d\n" % len(FileList["PDF"]) \
             + "  OLE Files       : %d\n" % len(FileList["OLE"]) \
+            + "     HWP Files    : %d\n" % len(FileList["HWP"]) \
+            + "     Office Files : %d\n" % len(FileList["Office"]) \
             + "  PE Files        : %d\n" % len(FileList["PE"]) \
             + "  Unknown Files   : %d\n" % len(FileList["Unknown"]) \
             + "\n  File Count      : %d\n" % (len(FileList["PDF"]) + len(FileList["OLE"]) + len(FileList["PE"]) + len(FileList["Unknown"])) \
