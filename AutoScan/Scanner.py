@@ -376,6 +376,11 @@ class Action():
                         ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
             
             main = Main()
+            
+            for Format in FormatList :
+                print Format
+                print ScanList[Format]
+            
             if not main.Scan(ScanList, FormatList) :            
                 return False
             
@@ -431,10 +436,6 @@ class Main():
                         continue
             
             return True
-        
-        except KeyError :
-            print "Format : %s" % Format
-            print ScanList[Format]
         
         except :
             print traceback.format_exc()
