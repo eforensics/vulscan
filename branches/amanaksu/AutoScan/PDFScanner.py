@@ -278,7 +278,10 @@ class PDFSearch():
                 
                 for streamDict in streams :
                     ElementList.append( streamDict[1] )
-                                
+        
+        except TypeError :
+            print "bData : %s" % bData
+                       
         except :
             print traceback.format_exc()
             return []
