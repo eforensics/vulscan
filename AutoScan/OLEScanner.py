@@ -223,7 +223,7 @@ class OLEStruct():
                     break
 
         except IndexError :
-            print "%s ( SecID : %d )" % (fname, SecID)
+            print "%s ( SecID : %x )" % (fname, SecID)
                 
         except :
             print traceback.format_exc()

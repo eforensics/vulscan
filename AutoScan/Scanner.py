@@ -433,7 +433,8 @@ class Main():
             return True
         
         except KeyError :
-            print Format
+            print "Format : %s" % Format
+            print ScanList[Format]
         
         except :
             print traceback.format_exc()
