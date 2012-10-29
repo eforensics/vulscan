@@ -4,18 +4,18 @@
 import traceback
 
 # import Private Module
-from Common import BufferControl
+import Common
 
-class PEScan():
+
+
+class PE():
     @classmethod
     def Check(cls, pBuf):
         try :
-            if BufferControl.Read(pBuf, 0, 2) == "MZ" or BufferControl.Read(pBuf, 0, 2) == "mz" :
+            if Common.BufferControl.Read(pBuf, 0, 2) == "MZ" or Common.BufferControl.Read(pBuf, 0, 2) == "mz" :
                 return "PE"
             else :
                 return ""
             
         except :
             print traceback.format_exc()
-            
-        

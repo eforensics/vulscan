@@ -91,14 +91,14 @@ class BufferControl():
             chCount = 0
             
             for data in List :
-                Buf += hex(data) + " "
+                Buf += "0x%08x " % data
                 chCount += 1
                 if chCount == 15 :
                     Buf += "\n"
                     chCount = 0
     
-            Buf += "\n" + "=" * 50 + "\n" + "-" * 50
-            Buf += "Table Count : %d" % len(List)
+            Buf += "\n" + "-" * 50
+            Buf += "\n   Table Count : %d" % len(List)
             Buf += "\n" + "-" * 50
     
         except :
@@ -166,7 +166,9 @@ class FileControl():
             pBuf = fp.read()
             
             fp.close()
+        
         except :
+#            print os.path.abspath( fname )
             print traceback.format_exc()
         
         return pBuf
