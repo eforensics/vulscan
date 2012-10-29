@@ -1,34 +1,21 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import traceback, binascii, os, zlib
+import optparse, traceback, os, binascii, zlib
 
+# import Private Module
+import Common
+from PEScanner import PE
 
-# import private module
-from Common import BufferControl, FileControl
-from PEScanner import PEScan
 
 
 class HWP():
     @classmethod
-    def HWPScan(cls, File):
-        try :
-            File['logbuf'] += " : HWP"
-            
-#            if File["OptSep"] == "*" or File["OptSep"] == "HWP" :
-#                if not FileControl.SeperateFile(File, "HWP") :
-#                    File['logbuf'] += "\n\t[Failure] Move %s" % File["fname"]            
-#            
-#            return True
-            
-            # Print Directory
-#            for dirlist in File["DirList"] :
-#                OLEScanner.PrintOLE.PrintDirectory(File, dirlist)
-            
+    def Scan(cls, File):
+        try :            
             Hwp = OperateHWP()           
             
             # Extract Sector Data
-#            File['logbuf'] += "\n        [Extract] "
             if not Hwp.ExtractSector( File ) : 
                 return False
             
@@ -36,7 +23,7 @@ class HWP():
             MapHWP = MappedHWP()
             FileHeader = File["FileHeader"]
             if FileHeader == "" :
-                File['logbuf'] += "[ERROR] FileHeader is NOT Saved"
+                print "\t\t[ERROR] FileHeader is NOT Saved"
                 return False
             
             MapFHeader = MapHWP.MapFileHeader(File, FileHeader)
@@ -47,7 +34,7 @@ class HWP():
                 
             if MapFHeader["Property"] & 2 :
                 File["Password"] = True
-                File['logbuf'] += "[ERROR] Password is required"
+                print "\t\t[ERROR] Password is required"
                 return False
             else :
                 File["Password"] = False
@@ -58,7 +45,7 @@ class HWP():
             if File["ExtType"] != [] :                
                 DecType = Record.DecryptDataRecord(File["ExtType"])
                 if DecType == [] :
-                    File['logbuf'] += "[ERROR] DecryptDataRecord( )"
+                    print "\t\t[ERROR] DecryptDataRecord( )"
                     return False
                 File["DecType"] = DecType
             
@@ -78,8 +65,7 @@ class HWP():
             return False
         
         return True
-
-
+    
 
 class MappedHWP():
     def MapFileHeader(self, File, FileHeader):
@@ -91,12 +77,12 @@ class MappedHWP():
             Position = 0
             for index in range( len(szFHeader) ) :
                 if szFHeader[index] == 32 : 
-                    Signature = BufferControl.Read(FileHeader, Position, szFHeader[index])
-                    FHeader[ mFHeader[index] ] = BufferControl.ExtractAlphaNumber( Signature )
+                    Signature = Common.BufferControl.Read(FileHeader, Position, szFHeader[index])
+                    FHeader[ mFHeader[index] ] = Common.BufferControl.ExtractAlphaNumber( Signature )
                 elif szFHeader[index] == 4 :
-                    FHeader[ mFHeader[index] ] = BufferControl.ReadDword(FileHeader, Position)
+                    FHeader[ mFHeader[index] ] = Common.BufferControl.ReadDword(FileHeader, Position)
                 else :
-                    FHeader[ mFHeader[index] ] = binascii.b2a_hex( BufferControl.Read(FileHeader, Position, szFHeader[index]) )
+                    FHeader[ mFHeader[index] ] = binascii.b2a_hex( Common.BufferControl.Read(FileHeader, Position, szFHeader[index]) )
                 
                 Position += szFHeader[index]
             
@@ -151,9 +137,8 @@ class OperateHWP():
                 for DirEntry in DirList :
                     if RefEntry == DirEntry["EntryName"] :
                         Sector = self.ExtractSectorbySAT(pBuf, SATable, DirEntry["SecID"], DirEntry["szData"])
-#                        File['logbuf'] += DirEntry["EntryName"] + "\n                  "
                         fname = "%s_%s_%s.dump" % (File["fname"], DirEntry["EntryName"], DirEntry["szData"])
-                        FileControl.WriteFile(fname, Sector)
+                        Common.FileControl.WriteFile(fname, Sector)
                         
                         if RefEntry == "RootEntry" :
                             File["RootEntry"] = Sector                        
@@ -169,7 +154,7 @@ class OperateHWP():
             # Extract Sector By SSAT
             pBuf = File["RootEntry"]
             if pBuf == "" :
-                File['logbuf'] += "[ERROR] RootEntry is NOT Saved"
+                print "\t\t[ERROR] RootEntry is NOT Saved"
                 return False
             
             SSATable = File["SSATable"]
@@ -181,9 +166,8 @@ class OperateHWP():
                         
                     if RefEntry == DirEntry["EntryName"] :
                         Sector = self.ExtractSectorbySSAT(pBuf, SSATable, DirEntry["SecID"], DirEntry["szData"])
-#                        File['logbuf'] += DirEntry["EntryName"] + "\n                  "
                         fname = "%s_%s_%s.dump" % (File["fname"], DirEntry["EntryName"], DirEntry["szData"])
-                        FileControl.WriteFile(fname, Sector)
+                        Common.FileControl.WriteFile(fname, Sector)
                         
                         if RefEntry == "FileHeader" :
                             File["FileHeader"] = Sector
@@ -211,10 +195,10 @@ class OperateHWP():
                 if SecID == 0xffffffff or SecID == 0xfffffffe or SecID == 0xfffffffd or SecID == 0xfffffffc :
                     break
             
-                tmpSector += BufferControl.ReadSectorByBuffer(pBuf, SecID, 0x200)
+                tmpSector += Common.BufferControl.ReadSectorByBuffer(pBuf, SecID, 0x200)
                 SecID = Table[SecID]
             
-            Sector = BufferControl.Read(tmpSector, 0, Size)
+            Sector = Common.BufferControl.Read(tmpSector, 0, Size)
             
         except :
             print traceback.format_exc()
@@ -231,10 +215,10 @@ class OperateHWP():
                 if SecID == 0xffffffff or SecID == 0xfffffffe or SecID == 0xfffffffd or SecID == 0xfffffffc :
                     break
             
-                tmpSector += BufferControl.ReadSectorByBuffer(pBuf, SecID, 0x40)
+                tmpSector += Common.BufferControl.ReadSectorByBuffer(pBuf, SecID, 0x40)
                 SecID = Table[SecID]
             
-            Sector = BufferControl.Read(tmpSector, 0, Size)
+            Sector = Common.BufferControl.Read(tmpSector, 0, Size)
             
         except :
             print traceback.format_exc()
@@ -248,10 +232,10 @@ class ParseRecord():
         try :
             DecType = []
             for fname in ExtType :            
-                Buf = FileControl.ReadFileByBinary(fname)
+                Buf = Common.FileControl.ReadFileByBinary(fname)
                 Buf_Dec = zlib.decompress(Buf, -15)
                 sname = "%s_Decrypt" % fname
-                FileControl.WriteFile(sname, Buf_Dec)
+                Common.FileControl.WriteFile(sname, Buf_Dec)
                 if (sname.find("DocInfo") != -1) or (sname.find("BinaryData") != -1) or (sname.find("VersionLog") != -1) or (sname.find("Section") != -1):
                     DecType.append(sname)
                 else :
@@ -271,15 +255,15 @@ class ParseRecord():
             # Parse Decrypted Type
             for fname in DecType :
                 
-                File['logbuf'] += "\n\n\t    %s" % fname
+                print "\t    %s" % fname
                 
                 Position = 0
-                DecrpytBuf = FileControl.ReadFileByBinary(fname)
+                DecrpytBuf = Common.FileControl.ReadFileByBinary(fname)
                 while Position < len( DecrpytBuf ) :
                     OverFlag = False
-                    DataRecord = BufferControl.ReadDword(DecrpytBuf, Position)
+                    DataRecord = Common.BufferControl.ReadDword(DecrpytBuf, Position)
                     
-                    File['logbuf'] += "\n\t    0x%08X : " % Position
+                    print "\t    0x%08X : " % Position,
                     
                     Position += 4
                     TagID = DataRecord & 0x000003FF
@@ -287,13 +271,13 @@ class ParseRecord():
                     Size = ( DataRecord & 0xFFF00000 ) >> 20
                     if Size == 0xFFF :
                         OverFlag = True
-                        Size = BufferControl.ReadDword(DecrpytBuf, Position)
+                        Size = Common.BufferControl.ReadDword(DecrpytBuf, Position)
                         Position += 4
                     
-                    File['logbuf'] += "( 0x%08X   %03X   0x%08X (%s) ) - %s" % (TagID, Level, Size, OverFlag, HWPTAG[TagID])
+                    print "( 0x%08X   %03X   0x%08X (%s) ) - %s" % (TagID, Level, Size, OverFlag, HWPTAG[TagID])
                     
                     if (OverFlag == True and Size > 0x00010000) or (OverFlag == True and Size == 0xFFFFFFFF) :
-                        File['logbuf'] += "   " + ">" * 10 + " Suspicious!!"
+                        print "   " + ">" * 10 + " Suspicious!!"
 #                        BufferControl.PrintBuffer(File, DecrpytBuf, Position, 0x100)
                     
                     Position += Size
@@ -307,15 +291,7 @@ class ParseRecord():
 
     def CheckPEStream(self, File):
         try :
-            dirpath = ""
-            if File["fpath"] :
-                dirpath = os.path.dirname( File["fpath"] )
-            elif File["dpath"] :
-                dirpath = File["dpath"]
-            else :
-                File['logubf'] += "\n\t[ERROR] Get Directory Path"
-                return False
-            
+            dirpath = os.path.abspath( os.curdir )
             
             # Extract File ( "fname * .dump" )
             TarList = []
@@ -327,9 +303,9 @@ class ParseRecord():
             
             
             # Check PE 
-            CheckFormat = PEScan()
+            CheckFormat = PE()
             for fname in TarList :
-                pBuf = FileControl.ReadFileByBinary( fname )
+                pBuf = Common.FileControl.ReadFileByBinary( fname )
                 if CheckFormat.Check(pBuf) :
                     File['logbuf'] += "\n\n\t    [-] Find PE : %s" % fname
             
@@ -401,5 +377,7 @@ HWPTAG = {HWPTAG_BEGIN      :"HWPTAG_DOCUMENT_PROPERTIES",
           # BodyText
           HWPTAG_BEGIN+79   :"HWPTAG_CHART_DATA",
           HWPTAG_BEGIN+99   :"HWPTAG_SHAPE_COMPONENT_UNKNOWN" }
+
+
 
 

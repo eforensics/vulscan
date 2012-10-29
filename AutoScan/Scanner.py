@@ -4,10 +4,11 @@
 import optparse, traceback, sys, os, ftplib, shutil
 
 # import Private Module
-from Common import FileControl
-from PDFScanner import PDFScan
-from OLEScanner import OLEScan, OLEStruct
-from PEScanner import PEScan
+import Common
+from PDFScanner import PDF
+from OLEScanner import OLE
+from PEScanner import PE
+
 
 
 
@@ -35,92 +36,101 @@ class Initialize():
         return options
 
 
-
 class FTPServer():
     def ConnectServer(self, FTP, IP, ID, PW):
         try :
             # Connect Network
-            print "[+] Connect Server : %s ( ID : %s ).........." % (IP, ID),
+            print "\t[-] Connect Server : %s.........." % IP,
             MsgConnect = FTP.connect(IP)
             
             # Failure Connection
             #    - Success Message : 220 (vsFTPd 2.3.5)
             if MsgConnect.find("220") == -1 :
-                print "Failure ( Connect : %s )" % MsgConnect
+                print "\t\t[Failure] %s" % MsgConnect
                 return False
             
             # Failure Connection
             #    - Success Message : 230 Login successful
             MsgConnect = FTP.login(ID, PW)
             if MsgConnect.find("230") == -1 :
-                print "Failure ( Login : %s )" % MsgConnect
+                print "\t\t[Failure] %s" % MsgConnect
                 return False
             
-            # Success Connection
             print "Success"
+            return True
             
         except :
             print traceback.format_exc()
             return False
-        
-        return True
     
     
     def Download(self, FTP, Src, Dst):
         try :
-            print "[+] Download......",
+            print "\t[-] Download"
+            
+            # Set Destination Folder 
+            if not os.path.isdir( Src ) :
+                print "\t\t[Failure] Don't Exist Folder ( %s )" % Src
+                return False
             
             if not os.path.isdir( Dst ) :
                 os.mkdir( Dst )
             
             os.chdir( Dst )
+            
+            # Set Source Folder
+            # Ex) 2012/10/5 -> '2012', '10', '5'
             SrcList = Src.split("\\")
             
             for nextdir in SrcList :
                 MsgFTP = FTP.cwd(nextdir)
                 if MsgFTP.find("250") == -1 :
-                    print "Failure Change Directory"
+                    print "\t\t[Failure] Change Directory ( %s )" % nextdir
                     return False            
             
+            # File Download
             if not self.DownloadFile(FTP) :
                 return False
             
-            print "Success"
+            return True
             
         except :
             print traceback.format_exc()
             return False
         
-        return True
-    
     
     def DownloadFile(self, FTP):
+        
+        print "\t\t[-] DownloadFile"
+        
         try :
             # Check Target Directory By File Format
-            TargetName = ["PDF", "unknown", "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document" \
-                          "Office Open XML Spreadsheet"]
+            TargetName = ["PDF",        \
+                          "unknown",    \
+                          "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document", "Office Open XML Spreadsheet"]
             ExtDir = []
             
             DirList = FTP.nlst()
             for DirName in DirList : 
-                for Target in TargetName :
-                    if DirName == Target :
-                        ExtDir.append( DirName )
+                if DirName in TargetName :
+                    ExtDir.append( DirName )
             
             if ExtDir == [] :
-                print "Folder is not Found"
-                return True
-            
+                print "\t\t\t[Failure] Target Folder is not Found"
+                return False
 
+            CopyFlag = False
             SrcPath = FTP.pwd()
             for extDir in ExtDir :
                 # Move Src Directory ( in FTP Server )
                 srcpath = SrcPath + "/" + extDir
                 MsgFTP = FTP.cwd( srcpath )
                 if MsgFTP.find("250") == -1 :
-                    print "Failure Change Directory ( %s )" % extDir
+                    print "\t\t\t[Failure] Change Directory ( %s )" % extDir
+                    continue
                 
                 # File Download ( From FTP Server To Host PC )
+                FileCount = 0
                 flist = FTP.nlst()
                 for fname in flist :
                     if os.path.splitext( fname )[1] == ".txt" :
@@ -128,305 +138,224 @@ class FTPServer():
                     
                     MsgFTP = FTP.retrlines("RETR " + fname, open(fname, 'wb').write)
                     if MsgFTP.find( "226" ) == -1 :
-                        print "    %s ( %s )" % ( fname, MsgFTP )
+                        print "\t\t\t[Failure] RETRLines %s ( %s )" % ( fname, MsgFTP )
                         continue
+                    
+                    FileCount += 1
+                
+                if FileCount > 0 :
+                    print "\t\t\t%s ( Count : %d )" %  ( extDir, FileCount)
+                    CopyFlag = True
             
+            if CopyFlag :
+                return True
+            else :
+                return False
+                        
         except :
             print traceback.format_exc()
             return False
         
-        return True
-
 
 class Action():
-    def OptDelete(self, Options):
-        try :           
-            ext = os.path.splitext( Options.delete )
-            # Case 1. test.ext
-            if ext[0] != "*" :
-                os.remove( Options.delete )
-                return True
+    # Opt
+    #    Case 1. test.txt ( 'test', '.txt' )
+    #    Case 2. *        ( '*', '' )
+    #    Case 3. *.extend ( '*', '.extend' )
+    def OptDelete(self, Opt, flist):
+        
+        print "[+] OptDelete........",
+        
+        try :
+            OptExt = os.path.splitext( Opt )
             
-            # Case 2. *
-            if ext[0] == "*" and ext[1] == "" :
-                os.removedirs( Options.delete )
-                return True
-            
-            # Case 3. *.extend
-            flist = os.listdir( os.path.curdir() )
-            for fname in flist :
-                if os.path.isdir( fname ) :
-                    continue
-                
-                fext = os.path.splitext( fname )    
-                if ext[1] == fext[1] :
+            # Case 1
+            if OptExt[0] != "*" :
+                for fname in flist :
                     os.remove( fname )
+                
+                print "Success"
+                return True
             
-            return True
+            # Case 2
+            if OptExt[0] == "*" and OptExt[1] == "" :
+                for fname in flist :
+                    if os.path.isdir( fname ) :
+                        os.removedirs( fname )
+                        continue
+                     
+                    if os.path.isfile( fname ) :
+                        os.remove( fname )
+                        continue
+                
+                print "Success"
+                return True
+                
+            # Case 3
+            if OptExt[1] != "" :        
+                for fname in flist :
+                    if os.path.isdir( fname ) :
+                        continue
+                    
+                    fext = os.path.splitext( fname )
+                    if fext[1] == OptExt[1] :
+                        os.remove( fname )
             
-        except : 
+                print "Success"
+                return True
+        
+        except :
+            print "\n\t[Failure] %s" % fname 
             print traceback.format_exc()
-            return False
-
-    def OptFTP(self, Options) :
-        try : 
-            IP = Options.ip
-            ID = Options.id
-            PW = Options.pw
-            srcdir = Options.src
-            dstdir = Options.dst
+            return False       
+    
+    
+    def OptFTP(self, IP, ID, PW, Src, Dst):
+        
+        print "[+] OptFTP......"
+        
+        try :
+            # Check Parameter
+            if not IP or not ID or not PW or not Src or not Dst :
+                print "\n\t[Failure] IP : %s" % IP          \
+                        + "\n\t          ID : %s" % ID      \
+                        + "\n\t          PW : %s" % PW      \
+                        + "\n\t          Src : %s" % Src    \
+                        + "\n\t          Dst : %s" % Dst 
+                return False
             
-            if not IP or not ID or not PW or not srcdir or not dstdir :
-                print "   [OptErr] Check please FTP Options"
-                return False    
-            
-            # Connection FTP Server
+            # Create Object : "FTP" & "Server" 
             FTP = ftplib.FTP()
             Server = FTPServer()
+            
+            # Connection FTP Server
             if not Server.ConnectServer(FTP, IP, ID, PW) :
                 return False
             
             # Download Files From FTP Server
-            if not Server.Download(FTP, srcdir, dstdir) :
+            if not Server.Download(FTP, Src, Dst) :
                 return False
             
             # Connection Termination
             FTP.close()
         
             return True
+            
         except :
             print traceback.format_exc()
             return False
+    
 
-
-    def Categorizer(self, Options):
-        try :    
-            # Separate File Format
-            FileList = {}
-            print "[+] Check Samples File Format"
-            if not self.SeparateList(Options, FileList) :
-                return {}
-            
-            # Separate Samples
-            FileList["Except"] = []
-            
-            if FileList["PDF"] != [] :
-                self.Separation(Options, FileList, FileList["PDF"], "PDF", FileList["Except"]) 
-                
-            if FileList["OLE"] != [] :
-                self.Separation(Options, FileList, FileList["OLE"], "OLE", FileList["Except"]) 
-                
-            if FileList["PE"] != [] :
-                self.Separation(Options, FileList, FileList["PE"], "PE", FileList["Except"])
-            
-            if FileList["Unknown"] != [] :
-                self.Separation(Options, FileList, FileList["Unknown"], "unknown", FileList["Except"]) 
-
-            return FileList
+    def Categorizer(self):
         
-        except :
-            print traceback.format_exc()
-            return {}
-
-
-    def SeparateList(self, Options, FileList):
+        print "[+] Classification "
+        
         try :
-            PDFList = []
-            OLEList = []
-            PEList = []
-            UnknownList = []
+            # Check File Format
+            FileList = {}
             
-            if Options.dst :
-                dstdir = Options.dst 
-            elif Options.directory :
-                dstdir = Options.directory 
-            else :
-                print "Do not Sample's Directory"
+            for Format in FileFormatList :
+                FileList[ Format ] = []            
+    
+            if not self.CheckFormat( FileList ) :
                 return False
             
-            main = Main()
-            flist = os.listdir( dstdir )
-            for fname in flist :
+            
+            # Copy Files By File Format
+            if not self.CopyFileByFormat( FileList ) :
+                return False
+            
+            return True
+            
+        except :
+            print traceback.format_exc()
+            return False
+    
+    
+    def CheckFormat(self, FileList):
+        
+        print "\t[-] CheckFormat"
+        
+        try :
+            Format = ""
+            curDirList = os.listdir( os.path.abspath(os.curdir) )
+            
+            for fname in curDirList :
                 if os.path.isdir( fname ) :
                     continue
                 
-                Format = main.CheckFormat(fname)
-                if Format == "PDF" :
-                    PDFList.append( fname )
-                elif Format == "OLE" :
-                    OLEList.append( fname )
-                elif Format == "PE" :
-                    PEList.append( fname )
-                else :
-                    UnknownList.append( fname )
-            
-            FileList["PDF"] = PDFList
-            FileList["OLE"] = OLEList
-            FileList["PE"] = PEList
-            FileList["Unknown"] = UnknownList
-            
-            return True
-            
-        except :
-            print traceback.format_exc()
-            return False
-        
-    
-    def Separation(self, Options, FileList, FormatList, Format, ExceptList):
-        try : 
-            if Options.dst :
-                dstdir = Options.dst 
-            elif Options.directory :
-                dstdir = Options.directory 
-            else :
-                print "Do not Sample's Directory"
-                return []
-            
-            # Detailed Separation
-            if Format == "OLE" : 
-                OfficeList = []
-                HWPList = []
+                pBuf = Common.FileControl.ReadFileByBinary(fname)
+                for mCheck in ClsCheck :
+                    Format = eval(mCheck).Check(pBuf)
+                    if Format in FileFormatList :
+                        FileList[ Format ].append( fname )
+                        break
                 
-                for fname in FormatList :
-                    File = {} 
-                    File["fname"] = fname
-                    File["pBuf"] = FileControl.ReadFileByBinary(fname)
-                    File['logbuf'] = ""
+                if Format == "" :
+                    print "\t\t[Except] Format Check ( %s )" % fname
+                    FileList["Except"].append( fname )
                     
-                    OLE = OLEStruct( File )
-                    
-                    if not OLE.OLEHeader(File) :
-                        ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLEHeader()" )
-                        continue
     
-                    if not OLE.OLETableSAT(File) :
-                        ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLETableSAT()" )
-                        continue
-    
-                    if not OLE.OLETableSSAT(File) :
-                        ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLETableSSAT()" )
-                        continue
-            
-                    if not OLE.OLEDirectory(File) :
-                        ExceptList.append( fname )
-                        ExceptList.append( "Failure : OLEDirectory()" )
-                        continue
-                    
-                    if File["format"] == "Office" :
-                        OfficeList.append( fname )
-                    elif File["format"] == "HWP" :
-                        HWPList.append( fname )
-                    else :
-                        ExceptList.append( fname )
-                        ExceptList.append( "Failure : None Format" )
-                        continue
-                
-                FileList["HWP"] = HWPList
-                if not self.SeparateFile(dstdir, HWPList, "HWP") :
-                    print fname + "\tFailure : SeparateFile( HWP )"
-                
-                FileList["Office"] = OfficeList
-                if not self.SeparateFile(dstdir, OfficeList, "Office") :
-                    print fname + "\tFailure : SeparateFile( Office )"
-                    
-            else :
-                if not self.SeparateFile(dstdir, FormatList, Format) :
-                    print fname + "\tFailure : SeparateFile( %s )" % Format
-        
-        except : 
-            print fname + "\tException : Separation()"
-            print traceback.format_exc()
-
-
-    def SeparateFile(self, curdirpath, flist, Format):
-        try :
-            dirpath = curdirpath + "\\" + Format
-            if not os.path.exists( dirpath ) : 
-                os.mkdir( dirpath )    
-            
-            for fname in flist :
-                tmpcurdirpath = curdirpath + "\\" + fname
-                tmpdirpath = dirpath + "\\" + fname
-                shutil.move(tmpcurdirpath, tmpdirpath)
-            
-        except :
-            print traceback.format_exc()
-            return False
-    
-        return True
-
-
-    def VulScan(self, OptScan, dstdir, FormatList):
-        try :
-            ScanList = {}
-            
-            os.chdir( dstdir ) 
-             
-            for dirpath in os.listdir( dstdir ) :
-                if os.path.isdir( dirpath ) and ( os.path.split(dirpath)[1] in FormatList ) :
-                    if (OptScan != "*") and (os.path.split(dirpath)[1] == OptScan) :
-                        ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
-                    
-                    if OptScan == "*" :
-                        ScanList[os.path.split(dirpath)[1]] = os.listdir( dirpath )
-            
-            main = Main()
-            if not main.Scan(ScanList, FormatList) :            
-                return False
-            
+            print "\t" + "=" * 40
+            for Format in FileFormatList :
+                print "\t   %s   \t: %d" % ( Format, len(FileList[ Format ]) )
+            print "\t" + "=" * 40
+                            
             return True
         
         except :
             print traceback.format_exc()
-
-
-class Main():
-    def CheckFormat(self, fname):
+            return False
+    
+    
+    def CopyFileByFormat(self, FileList):
+        
+        print "\t[-] CopyFile By Format"
+        
         try :
-            Format = ""
+            for Format in FileFormatList :
+                DstDir = ".\\" + Format
+                if not os.path.exists( DstDir ) :
+                    os.mkdir( DstDir )
+                
+                for fname in FileList[ Format ] :
+                    shutil.move( fname, ".\\" + Format )
             
-            pBuf = FileControl.ReadFileByBinary(fname)
-            if pBuf == "" :
-                return Format
-            
-            for FormatFunc in ScanFormatFunc :
-                Format = FormatFunc.Check( pBuf )
-                if Format != "" :
-                    break
-            
-            return Format
-            
+            return True
+    
         except :
             print traceback.format_exc()
-            return Format
-
-
-    def Scan(self, ScanList, FormatList):
+            return False
+    
+    
+    def OptScan(self):
+        
+        print "[+] Scanning By File Format"
+        
         try :
-            for Format in FormatList :
-                if ScanList[Format] == [] :
+            UpperPath = os.path.abspath( os.curdir )
+            
+            for Format in FileFormatList :
+                if Format in ExceptScan :
                     continue
                 
-                os.chdir( Format )
+                SubPath = UpperPath + "\\" + Format
                 
-                for fname in ScanList[Format] :
-                    File = {}
-                    File["fname"] = fname
-                    File["pBuf"] = FileControl.ReadFileByBinary(fname)
-                    File["logbuf"] = ""
-                    File["format"] = Format
-                                        
-                    if Format == "PDF" :    
-                        PDFScan.Scan(File)
+                SubPathList = os.listdir( SubPath )
+                for fname in SubPathList :
+                    if os.path.isdir( fname ) :
                         continue
                     
-                    if Format == "Office" or Format == "HWP" :
-                        OLEScan.Scan(File)
-                        continue
-            
+                    os.chdir( SubPath )
+                    
+                    File = {}
+                    File["fname"] = fname
+                    File["pBuf"] = Common.FileControl.ReadFileByBinary(fname)
+                    File["logbuf"] = ""
+                    File["format"] = Format
+                    
+                    eval(Format).Scan( File )
+                        
             return True
         
         except :
@@ -434,7 +363,28 @@ class Main():
             return False
 
 
-ScanFormatFunc = [PDFScan, OLEScan, PEScan]
+ClsCheck = ["PDF", "OLE", "PE"] 
+FileFormatList = ["PDF", "OLE", "PE", "Unknown", "Except"]
+ExceptScan = ["PE", "Unknown", "Except"]
+#------------------------------------------------------------------
+# PDF
+# 
+# OLE
+#  ├ HWP
+#  └ Office
+#      ├ DOC
+#      ├ PowerPoint
+#      └ Excel
+# 
+# COFF
+#  └ PE
+# 
+# Unknown
+# Except
+#------------------------------------------------------------------
+
+
+
 
 
 if __name__ == '__main__' :
@@ -442,95 +392,52 @@ if __name__ == '__main__' :
     Init = Initialize()
     Options = Init.GetOptions()
     
-    # Flow log
-    log = ""
+    print "[+] Start"
     
     try :
-        print "[*] Start"
-        
         Act = Action()
         
-        # Options "Directory"
+        # Default Set Current Directory
         if Options.directory :
             if not os.path.isdir( Options.directory ) :
-                print "    [OptErr] Check please Directory Options ( %s )" % Options.directory
                 exit(-1)
-                
-            os.chdir( Options.directory )
-            
+            curdir = Options.directory
+        elif Options.dst :
+            if not os.path.isdir( Options.dst ) :
+                exit(-1)
+            curdir = Options.dst 
+        else :
+            exit(-1)
+        
+        os.chdir( curdir )
+        
         
         # Options "DELETE"
-        if Options.directory and Options.delete :
-            if not Act.OptDelete(Options) :
-                print 
+        if Options.delete :
+            flist = os.listdir( os.curdir )
+            if not Act.OptDelete( Options.delete, flist ) :
                 exit(-1)
-    
-        sFlag = False
-    
+        
+        
         # Options "FTP"
         if Options.ip :
-            if not Act.OptFTP(Options) :
-                exit(-1)
-                
-            sFlag = True
-            FileList = Act.Categorizer(Options)
-            if FileList == {} :
+            if not Act.OptFTP( Options.ip, Options.id, Options.pw, Options.src, Options.dst ) :
                 exit(-1)
 
         
-        FormatList = ["PDF", "Office", "HWP"]
-        # Options "Scan"
+        # Options "SCAN"
         if Options.scan :
-            if Options.dst :
-                dstdir = Options.dst
-            elif Options.directory :
-                dstdir = Options.directory
-            else :
+            if not Act.Categorizer() :
                 exit(-1)
             
-            if sFlag == False :
-                FileList = Act.Categorizer(Options)
-                if FileList == {} :
-                    exit(-1)
-                        
-            if not Act.VulScan(Options.scan, dstdir, FormatList) :
+            if not Act.OptScan() :
                 exit(-1)
-            
+        
     except :
         print traceback.format_exc()
-    
-    finally: 
-        # Reault Log
-        log = ""
-        log = "=" * 70 + "\n" \
-            + "     Result\n" \
-            + "-" * 70 + "\n" \
-            + "  PDF Files       : %d\n" % len(FileList["PDF"]) \
-            + "  OLE Files       : %d\n" % len(FileList["OLE"]) \
-            + "     HWP Files    : %d\n" % len(FileList["HWP"]) \
-            + "     Office Files : %d\n" % len(FileList["Office"]) \
-            + "  PE Files        : %d\n" % len(FileList["PE"]) \
-            + "  Unknown Files   : %d\n" % len(FileList["Unknown"]) \
-            + "\n  File Count      : %d\n" % (len(FileList["PDF"]) + len(FileList["OLE"]) + len(FileList["PE"]) + len(FileList["Unknown"])) \
-            + "-" * 70 + "\n"
-            
-        ExceptList = FileList["Except"]
-        if len(ExceptList) :
-            log += "  Except Files : %d\n" % (len(ExceptList)/2) \
-                + "\n  [ File Name ]\t\t\t\t\t[ Description ]\n"
-                
-            index = 0
-            while index < len(ExceptList) :
-                log += "  %s\t%s\n" % (ExceptList[index], ExceptList[index+1])
-                index += 2
-    
-        print log
+        exit(-1)
     
     exit(0)
-        
-    
-    
-    
     
     
     

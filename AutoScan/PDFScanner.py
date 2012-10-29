@@ -1,12 +1,10 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import re, traceback, binascii
+import traceback, re, binascii, os
 
-
-# import private module
-from Common import DecodeControl, FileControl
-
+# import Private Module
+import Common
 
 
 class OperateStream():
@@ -79,7 +77,7 @@ class OperateStream():
 
     def Unescaping(self, element):
         try :
-            Decode = DecodeControl()
+            Decode = Common.DecodeControl()
         
             escapedVars = re.findall('(\w*?)\s*?=\s*?(unescape\((.*?)\))', element, re.DOTALL)
             for var in escapedVars:
@@ -199,6 +197,7 @@ class PDFSearch():
     
     def SearchElement(self, File, pBuf, ActionList):
         try :
+            fname = File["fname"]
             ElementList = []      
             # Javascript is 2-types. first type is /JS. Second type is /JavaScript.
             # First Type : "/JS"
@@ -234,10 +233,10 @@ class PDFSearch():
                     continue
                 
 #                Filters : /FlateDecode, /ASCIIHexDecode, /ASCII85Decode, /LZWDecode, /RunLengthDecode
-                Decode = DecodeControl()
+                Decode = Common.DecodeControl()
                 if Dict.find('/FlateDecode') != -1 or Dict.find('/Fl') != -1:
                     try :
-                        streamContent = Decode.FlateDecode(File["fname"], stream)
+                        streamContent = Decode.FlateDecode(fname, stream)
                         if streamContent == "" :
                             ConvertData = ""
                             for offset in range( len(stream) / 2 ) : 
@@ -245,29 +244,29 @@ class PDFSearch():
                                 ConvertData += binascii.a2b_hex( bData )
     
                             stream = ConvertData
-                            streamContent = Decode.FlateDecode(File["fname"], stream)  
+                            streamContent = Decode.FlateDecode(fname, stream)  
                     except :
-                        streamContent = Decode.FlateDecode2(File["fname"], stream)
+                        streamContent = Decode.FlateDecode2(fname, stream)
             
                 elif Dict.find('/ASCII85Decode') != -1 :
                     try :
 #                        print "ASCII85Deocde"
-                        streamContent = Decode.ASCII85Decode(File["fname"], stream)
+                        streamContent = Decode.ASCII85Decode(fname, stream)
                     except : 
 #                        print "ASCII85Decode2"
-                        streamContent = Decode.ASCII85Decode2(File["fname"], stream)
+                        streamContent = Decode.ASCII85Decode2(fname, stream)
                             
                 elif Dict.find('/ASCIIHexDecode') != -1 :
 #                    print "ASCIIHexDecode"
-                    streamContent = Decode.ASCIIHexDecode(File["fname"], stream)
+                    streamContent = Decode.ASCIIHexDecode(fname, stream)
                         
                 elif Dict.find('/RunLengthDecode') != -1 :
 #                    print "RunLengthDecode"
-                    streamContent = Decode.RunLengthDecode(File["fname"], stream)
+                    streamContent = Decode.RunLengthDecode(fname, stream)
                         
                 elif Dict.find('/LZWDecode') != -1 :
 #                    print "LZWDecode"
-                    streamContent = Decode.LZWDecode(File["fname"], stream)
+                    streamContent = Decode.LZWDecode(fname, stream)
                         
                 else:
 #                    print "No-Deocde"
@@ -281,11 +280,6 @@ class PDFSearch():
                 
                 for streamDict in streams :
                     ElementList.append( streamDict[1] )
-        
-        except TypeError :
-            print "bData : ",
-            print type( bData )
-            print bData
                        
         except :
             print traceback.format_exc()
@@ -312,7 +306,8 @@ class PDFSearch():
 
 
 
-class PDFScan():
+
+class PDF():
     @classmethod
     def Check(cls, pBuf):
         try : 
@@ -322,20 +317,16 @@ class PDFScan():
                 return ""      
         except :
             print traceback.format_exc()
-        
-        
+    
+    
     @classmethod
     def Scan(cls, File):
+        
+        print "\t[+] Scan PDF"
+        
         try :
-            File['logbuf'] += "\n    [+] %s...........%s" % ( File["fname"], File["format"] )
-            
-#            if File["OptSep"] == "*" or File["OptSep"] == "PDF" :
-#                if not FileControl.SeperateFile(File, "PDF") :
-#                    File['logbuf'] += "\n\t[Failure] Move %s" % File["fname"]            
-#            
-#            return True
-            
             pBuf = File["pBuf"]
+            fname = File["fname"]
             Search = PDFSearch()
             
             # Check Suspicious Events
@@ -354,11 +345,17 @@ class PDFScan():
                 if type(element) == type(None) :
                         continue
                 
-#                print "Scan : %s" % File["fname"]
                 element = Operation.FilterObj(element)
                 if Operation.isJavaScript( element ) :
-                    name = File["fname"] + "_" + hex( len(element) )
-                    FileControl.WriteFile(name, element)
+                    fext = os.path.splitext( fname )
+                    if not os.path.exists( fext[0] ) :
+                        os.mkdir( fext[0] )
+                        
+                    curdir = os.path.abspath( os.curdir )
+                    os.chdir( fext[0] )
+                    name = fname + "_" + hex( len(element) )
+                    Common.FileControl.WriteFile(name, element)
+                    os.chdir( curdir )
                     
                     UnEscapeData = Operation.Unescaping( element )
                     if UnEscapeData not in unescapedBytes :
@@ -376,36 +373,38 @@ class PDFScan():
             
             
             if Event == [] and Action == [] and ElementData == "" :
-                File['logbuf'] += "\t[ Done ]"
+                print "\t\t%s [ Done ]" % fname
             else :
-                File['logbuf'] += "\t[ Find ]"
+                print "\t\t%s [ Found ]" % fname
             
             
             # Logging Suspicious Data 
             if Event != [] :
-                File['logbuf'] += "\n            Event  : "
+                print "            Event  : ",
                 for event in Event :
-                    File['logbuf'] += event + " "
-                
+                    print event,
+                    print " ",
+                print ""
                 
             if Action != [] :
-                File['logbuf'] += "\n            Action : "
+                print "            Action  : ",
                 for action in Action :
-                    File['logbuf'] += action + " "
-                
+                    print action,
+                    print " ",
+                print ""
                 
             if ElementData != "" :
-                FileControl.WriteFile("%s_Element.dat" % File["fname"], ElementData)    
-                File['logbuf'] += "\n        [-] %s\t<%s_Element.dat>" % (File["fname"],  File["fname"]) 
-            
-        except :
-            File['logbuf'] += "\t[ Error ]"
-            print traceback.format_exc()
-            return False
+                Common.FileControl.WriteFile("%s_Element.dat" % fname, ElementData)  
+                print "         [-] %s\t<%s_Element.dat>" % (fname, fname)
+ 
+            return True
         
-        return True
-
-
+        except :
+            print traceback.format_exc()
+            return False 
+        
+        
+        
 SuspiciousEvents = ['/OpenAction', '/AA']
 SuspiciousActions = ['/JS', '/JavaScript', '/Launch', '/SubmitForm', '/ImportData']
 SuspiciousJS = ['mailto', 
@@ -423,11 +422,3 @@ CVENo = {"mailto"                       :   "CVE-2007-5020",
          "getIcon"                      :   "CVE-2009-0927", 
          "spell.customDictionaryOpen"   :   "CVE-2009-1493", 
          "media.newPlayer"              :   "CVE-2009-4324"}
-
-
-
-
-
-
-
-

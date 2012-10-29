@@ -1,15 +1,13 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import traceback, binascii, os, sys
-import struct
+import traceback, struct, os, binascii, shutil
 
-from collections import namedtuple
-
-# import private module
-from Common import BufferControl, FileControl
+# import Private Module
+import Common
 from HWPScanner import HWP
 from OfficeScanner import Office
+
 
 
 class OLEStruct():   
@@ -49,9 +47,9 @@ class OLEStruct():
             if Header["NumSAT"] > 109 or Header["NumMSAT"] > 0 :
                 Position = Header["MSATSecID"] * 0x200 + 0x200
                 Size = 0x200
-                MSATSectors += BufferControl.Read(pBuf, Position, Size)
+                MSATSectors += Common.BufferControl.Read(pBuf, Position, Size)
             
-            MSATList = BufferControl.ConvertBinary2List(MSATSectors, 4)            
+            MSATList = Common.BufferControl.ConvertBinary2List(MSATSectors, 4)            
             
             SecID = 0
             for index in range( len(MSATList) ) :
@@ -69,12 +67,9 @@ class OLEStruct():
         
         # Exception Checking
         if (os.path.getsize( File["fname"] ) < 0x700000) and (Header["NumSAT"] > 109 or Header["NumMSAT"] > 0) :
-            File['logbuf'] += "\n     Suspicious ( 0x%08X )" % os.path.getsize( File["fname"] )
+            print "\t\tSuspicious ( 0x%08X )" % os.path.getsize( File["fname"] )
         
-#        if Header["NumSAT"] > 109 :   
-#            File['logbuf'] += "\n    [Failure] Exist Extra SAT!!! ( 0x%08X )" % Header["NumSAT"]     
-#            return False
-#          
+        
         # Saving Need Data
         File["NumSAT"] = Header["NumSAT"]
         
@@ -98,19 +93,19 @@ class OLEStruct():
             for index in MSAT :    
                 if index == 0xffffffff or index == 0xfffffffe or index == 0xfffffffd or index == 0xfffffffc :
                     break
-                Sector += BufferControl.ReadSectorByBuffer(File["pBuf"], index, 0x200)
+                Sector += Common.BufferControl.ReadSectorByBuffer(File["pBuf"], index, 0x200)
                 
             if Sector == "" :
-                File['logbuf'] += "\n    [Failure] ReadSectorByBuffer( MSAT[0] : 0x%08X ) for OLETableSAT( )" % MSAT[0]
+                print "\t\t[Failure] ReadSectorByBuffer( MSAT[0] : 0x%08X ) for OLETableSAT( )" % MSAT[0]
                 return False             
             
             File["SATSectors"] = Sector 
             
             
             # Convert SAT Table Type
-            SAT = BufferControl.ConvertBinary2List(Sector, 4)
+            SAT = Common.BufferControl.ConvertBinary2List(Sector, 4)
             if SAT == [] :
-                File['logbuf'] += "\n    [Failure] ConvertBinary2List( ) for OLETableSAT( )"
+                print "\t\t[Failure] ConvertBinary2List( ) for OLETableSAT( )"
                 return False
 
             File["SATable"] = SAT
@@ -129,15 +124,15 @@ class OLEStruct():
             SAT = File["SATable"]
             Sector = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["SSATSecID"], 0x200)
             if Sector == "" :
-                File['logbuf'] += "\n    [Failure] OLETableTraceBySecID( ) for OLETableSSAT( )"
+                print "\t\t[Failure] OLETableTraceBySecID( ) for OLETableSSAT( )"
                 return False
             
             File["SSATSectors"] = Sector
             
             # Convert SSAT Table Type
-            SSAT = BufferControl.ConvertBinary2List(Sector, 4)
+            SSAT = Common.BufferControl.ConvertBinary2List(Sector, 4)
             if SSAT == [] :
-                File['logbuf'] += "\n    [Failure] ConvertBinary2List( ) for OLETableSSAT( )"
+                print "\t\t[Failure] ConvertBinary2List( ) for OLETableSSAT( )"
                 return False
             
             File["SSATable"] = SSAT
@@ -155,7 +150,7 @@ class OLEStruct():
             SAT = File["SATable"]  
             Sectors = OLEStruct.OLETableTraceBySecID(File["fname"], File["pBuf"], SAT, File["DirSecID"], 0x200)
             if Sectors == "" :
-                File['logbuf'] += "\n    [Failure] OLETableTraceBySecID( ) for OLEDirectory( )"
+                print "\t\t[Failure] OLETableTraceBySecID( ) for OLEDirectory( )"
                 return False
 
             File["Directory"] = Sectors
@@ -172,7 +167,7 @@ class OLEStruct():
             
             while Cnt < DirCnt : 
                 # Get Directory Sector Data
-                DirData = BufferControl.Read(Sectors, Cnt * 0x80, 0x80)
+                DirData = Common.BufferControl.Read(Sectors, Cnt * 0x80, 0x80)
                 
                 # Parse Directory
                 Directory = MapOLE.MapDirectory(File, DirData)
@@ -185,7 +180,7 @@ class OLEStruct():
                 elif Directory["EntryType"] != '05' and Directory["szData"] <= 0x1000 :
                     RefSSAT.append( Directory["EntryName"] )
                 else :
-                    File['logbuf'] += "\n    [Failure] Failed Separation by referred type ( %s )" % Directory["EntryName"]
+                    print "\t\t[Failure] Failed Separation by referred type ( %s )" % Directory["EntryName"]
             
                 
             # File Format Re-Separation
@@ -213,22 +208,22 @@ class OLEStruct():
         try :
             Sector = ""
             while True :
-                Sector += BufferControl.ReadSectorByBuffer(pBuf, SecID, Size)
+                Sector += Common.BufferControl.ReadSectorByBuffer(pBuf, SecID, Size)
                 SecID = table[SecID]
                 
                 if SecID in ExceptSecID :
                     break
                 
                 if SecID > len(table) :
-                    print "   %s ( Over SecID : %x / %x) - Suspicious" % (fname, SecID, len(table))
+                    print "\t\t%s ( Over SecID : %x / %x) - Suspicious" % (fname, SecID, len(table))
                     break
 
         except IndexError :
-            print "   %s ( SecID : %x / szTable : %x) - IndexError" % (fname, SecID, len(table))
+            print "\t\t%s ( SecID : %d ) - IndexError" % (fname, SecID)
             
-            wName = "%s_%x_TableIndexError.dump" % (fname, SecID)
-            OutBuf = BufferControl.ConvertList2Binary( table )
-            FileControl.WriteFile(wName, OutBuf)
+            wName = "%s_%d_TableIndexError.dump" % (fname, SecID)
+            OutBuf = Common.BufferControl.ConvertList2Binary( table )
+            Common.FileControl.WriteFile(wName, OutBuf)
                 
         except :
             print traceback.format_exc()
@@ -249,13 +244,13 @@ class MappedOLE():
             Position = 0
             for index in range( len(szHeader) ) :
                 if szHeader[index] == 2 :
-                    Header[ mHeader[index] ] = BufferControl.ReadWord(pBuf, Position)
+                    Header[ mHeader[index] ] = Common.BufferControl.ReadWord(pBuf, Position)
                 elif szHeader[index] == 4 :
-                    Header[ mHeader[index] ] = BufferControl.ReadDword(pBuf, Position)
+                    Header[ mHeader[index] ] = Common.BufferControl.ReadDword(pBuf, Position)
                 elif szHeader[index] == 8 :     # for Signature 
-                    Header[ mHeader[index] ] = binascii.b2a_hex( BufferControl.Read(pBuf, Position, szHeader[index]) )
+                    Header[ mHeader[index] ] = binascii.b2a_hex( Common.BufferControl.Read(pBuf, Position, szHeader[index]) )
                 else :
-                    Header[ mHeader[index] ] = BufferControl.Read(pBuf, Position, szHeader[index])
+                    Header[ mHeader[index] ] = Common.BufferControl.Read(pBuf, Position, szHeader[index])
                 
                 Position += szHeader[index]
                     
@@ -276,14 +271,14 @@ class MappedOLE():
             Position = 0
             for index in range( len(szDirEntry) ) :
                 if szDirEntry[index] == 2 :
-                    Directory[ mDirEntry[index] ] = BufferControl.ReadWord(DirData, Position)
+                    Directory[ mDirEntry[index] ] = Common.BufferControl.ReadWord(DirData, Position)
                 elif szDirEntry[index] == 4 :
-                    Directory[ mDirEntry[index] ] = BufferControl.ReadDword(DirData, Position)
+                    Directory[ mDirEntry[index] ] = Common.BufferControl.ReadDword(DirData, Position)
                 elif szDirEntry[index] == 64 :
-                    EntryName = BufferControl.Read(DirData, Position, szDirEntry[index])
-                    Directory[ mDirEntry[index] ] = BufferControl.ExtractAlphaNumber( EntryName )                        
+                    EntryName = Common.BufferControl.Read(DirData, Position, szDirEntry[index])
+                    Directory[ mDirEntry[index] ] = Common.BufferControl.ExtractAlphaNumber( EntryName )                        
                 else :
-                    Directory[ mDirEntry[index] ] = binascii.b2a_hex( BufferControl.Read(DirData, Position, szDirEntry[index]))
+                    Directory[ mDirEntry[index] ] = binascii.b2a_hex( Common.BufferControl.Read(DirData, Position, szDirEntry[index]))
             
                 Position += szDirEntry[index]
             
@@ -343,66 +338,70 @@ mDirEntry = ["EntryName",   # 000 [0x00] : 0x40 : Character Array of the name of
     
 class PrintOLE():
     @classmethod
-    def PrintHeader(cls, File, Header):
-        File['logbuf'] += "\n\n\t" + "=" * 79
-        File['logbuf'] += "\n\tHeader"
-        File['logbuf'] += "\n\t" + "-" * 79
-        File['logbuf'] += "\n\tSignature\t\t\t\t\t\t: %s" % Header['Signature']
-        File['logbuf'] += "\n\tSector Size\t\t\t\t\t\t: 0x%08X" % (1<<Header['szSector'])
-        File['logbuf'] += "\n\tShort-Sector Size\t\t\t\t: 0x%08X" % (1<<Header['szShort'])
-        File['logbuf'] += "\n\tSAT Sector Count\t\t\t\t: 0x%08X" % Header['NumSAT']
-        File['logbuf'] += "\n\tDirectory Sector's First SecID\t: 0x%08X" % Header['DirSecID']
-        File['logbuf'] += "\n\tShort-SAT Sector's First SecID\t: 0x%08X" % Header['sSATSecID']
-        File['logbuf'] += "\n\tShort-SAT Sector Count\t\t\t: 0x%08X" % Header['NumsSAT']
-        File['logbuf'] += "\n\tMaster-SAT Sector's First SecID\t: 0x%08X" % Header['MSATSecID']
+    def PrintHeader(cls, Header):
+        print "\n\t"  + "=" * 79
+        print "\tHeader"
+        print "\t" + "-" * 79
+        print "\tSignature\t\t\t\t\t\t: %s" % Header['Signature']
+        print "\tSector Size\t\t\t\t\t\t: 0x%08X" % (1<<Header['szSector'])
+        print "\tShort-Sector Size\t\t\t\t: 0x%08X" % (1<<Header['szShort'])
+        print "\tSAT Sector Count\t\t\t\t: 0x%08X" % Header['NumSAT']
+        print "\tDirectory Sector's First SecID\t: 0x%08X" % Header['DirSecID']
+        print "\tShort-SAT Sector's First SecID\t: 0x%08X" % Header['sSATSecID']
+        print "\tShort-SAT Sector Count\t\t\t: 0x%08X" % Header['NumsSAT']
+        print "\tMaster-SAT Sector's First SecID\t: 0x%08X" % Header['MSATSecID']
+        
         if Header['NumMSAT'] > 0 :
-            File['logbuf'] += "\n\tMaster-SAT Sector Count\t\t\t: 0x%08X -> Need to Big Data Proceduring" % Header['NumMSAT']
+            print "\tMaster-SAT Sector Count\t\t\t: 0x%08X -> Need to Big Data Proceduring" % Header['NumMSAT']
         else :
-            File['logbuf'] += "\n\tMaster-SAT Sector Count\t\t\t: 0x%08X" % Header['NumMSAT']
-        File['logbuf'] += "\n\t" + "=" * 79 + "\n"
+            print "\tMaster-SAT Sector Count\t\t\t: 0x%08X" % Header['NumMSAT']
+            
+        print "\n\t"  + "=" * 79
     
     
     @classmethod
-    def PrintDirectory(cls, File, Directory):
-        EntryName = BufferControl.ExtractAlphaNumber( Directory["EntryName"] )
-        File['logbuf'] += "\n\t    %s" % EntryName
+    def PrintDirectory(cls, Directory):
+        EntryName = Common.BufferControl.ExtractAlphaNumber( Directory["EntryName"] )
+        print "\t    %s" % EntryName,
+        
         if len(EntryName) < 21 :
             space = 21 - len(EntryName)
-            File['logbuf'] += " " * space
+            print " " * space,
         
         if Directory["EntryType"] == '01' :
-            File['logbuf'] += "\tStorage"                      
-        elif Directory["EntryType"] == '02' : 
-            File['logbuf'] += "\tStream"
+            print "\tStorage",                      
+        elif Directory["EntryType"] == '02' :
+            print  "\tStream",
         elif Directory["EntryType"] == '05' :
-            File['logbuf'] += "\tRoot" 
+            print "\tRoot",
         else :
-            File['logbuf'] += "\tEmpty"
-                
-        File['logbuf'] += "\t0x%08x" % Directory["SecID"] 
-        File['logbuf'] += "\t0x%08x" % Directory["szData"]
+            print "\tEmpty",
+        
+        print "\t0x%08x" % Directory["SecID"],
+        print "\t0x%08x" % Directory["szData"],
                 
         if Directory["EntryType"] == '05' :
-            File['logbuf'] += "\tReferred SAT"
+            print "\tReferred SAT"
         elif Directory["EntryType"] != '05' and Directory["szData"] > 0x1000 :
-            File['logbuf'] += "\tReferred SAT"
+            print "\tReferred SAT"
         elif Directory["EntryType"] != '05' and Directory["szData"] <= 0x1000 :
-            File['logbuf'] += "\tReferred Short-SAT"
+            print "\tReferred Short-SAT"
         else :
-            File['logbuf'] += "Error"  
-    
-    
-    
-    
-class OLEScan():
+            print "Error"
+              
+
+
+
+
+class OLE():
     @classmethod
     def Check(cls, pBuf):
         try :
             # Case1. 0xe011cfd0, 0xe11ab1a1L
-            if BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L and BufferControl.ReadDword(pBuf, 0x4) == 0xe11ab1a1L :
+            if Common.BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L and Common.BufferControl.ReadDword(pBuf, 0x4) == 0xe11ab1a1L :
                 return "OLE"
             # Case2. 0xe011cfd0, 0x20203fa1
-            elif BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L :
+            elif Common.BufferControl.ReadDword(pBuf, 0) == 0xe011cfd0L :
                 return "OLE"
             else :
                 return ""
@@ -411,44 +410,49 @@ class OLEScan():
         
         except :
             print traceback.format_exc()
-            
-            
+    
     @classmethod
     def Scan(cls, File):
+        
+        print "\t[+] Scan OLE"
+        
         try :
-            File['logbuf'] += "\n    [+] %s...........%s" % ( File["fname"], File["format"] )
             
             OLE = OLEStruct( File )
             
             if not OLE.OLEHeader(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLEHeader( %s )" % File["fname"]
+                print "\t\t[Failure] OLE.OLEHeader( %s )" % File["fname"]
                 return False
     
             
             if not OLE.OLETableSAT(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLETableSAT( %s )" % File["fname"]
+                print "\t\t[Failure] OLE.OLETableSAT( %s )" % File["fname"]
                 return False
     
             if not OLE.OLETableSSAT(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLETableSSAT( %s )" % File["fname"]
-    
+                print "\t\t[Failure] OLE.OLETableSSAT( %s )" % File["fname"]
+                
             
             if not OLE.OLEDirectory(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLEDirectory( %s )" % File["fname"]
+                print "\t\t[Failure] OLE.OLEDirectory( %s )" % File["fname"]
                 return False
 
-            DocScan = {"HWP":HWP.HWPScan, "Office":Office.OfficeScan}
-            for field in DocScan :
-                if File["format"] == field :
-                    DocScan[ field ]( File ) 
+
+            chpath = os.path.abspath( os.curdir ) + "\\" + File["format"]
+            if not os.path.exists( chpath ) :
+                os.mkdir( File["format"] )
             
+            shutil.move( File["fname"], chpath )
+            os.chdir( chpath )
+            
+            eval( File["format"] ).Scan( File ) 
+            
+            return True
+        
         except :
             print traceback.format_exc()
-            return False
+            return False 
         
-        return True
-    
-
 
 
 
