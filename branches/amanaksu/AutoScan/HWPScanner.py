@@ -1,13 +1,34 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import optparse, traceback, os, binascii, zlib
+import traceback, os, binascii, zlib
 
 # import Private Module
 import Common
 from PEScanner import PE
 
+#------------------------------------------------------------------------------------------------
+# [ Description ] 
+# - HWP 2.0 or 3.0
 
+class HWP23():
+    @classmethod
+    def Check(cls, pBuf):
+        try :
+            HWP23Sig = Common.BufferControl.Read(pBuf, 0, 0x20)
+            if HWP23Sig.find( "HWP Document File V2.00" ) or HWP23Sig.find( "HWP Document File V3.00") :
+                return "HWP23"
+            else :
+                return ""
+        
+        except :
+            print traceback.format_exc()
+            
+            
+
+#------------------------------------------------------------------------------------------------
+# [ Description ]
+# - HWP 5.x ( Compound File Format - OLE )
 
 class HWP():
     @classmethod
@@ -263,8 +284,6 @@ class ParseRecord():
                     OverFlag = False
                     DataRecord = Common.BufferControl.ReadDword(DecrpytBuf, Position)
                     
-                    print "\t    0x%08X : " % Position,
-                    
                     Position += 4
                     TagID = DataRecord & 0x000003FF
                     Level = ( DataRecord & 0x000FFC00 ) >> 10
@@ -274,12 +293,10 @@ class ParseRecord():
                         Size = Common.BufferControl.ReadDword(DecrpytBuf, Position)
                         Position += 4
                     
-                    print "( 0x%08X   %03X   0x%08X (%s) ) - %s" % (TagID, Level, Size, OverFlag, HWPTAG[TagID])
-                    
                     if (OverFlag == True and Size > 0x00010000) or (OverFlag == True and Size == 0xFFFFFFFF) :
-                        print "   " + ">" * 10 + " Suspicious!!"
-#                        BufferControl.PrintBuffer(File, DecrpytBuf, Position, 0x100)
-                    
+                        print "\t\t\t0x%08X : ( 0x%08X   %03X   0x%08X (%s) ) - %s   " % ( Position, TagID, Level, Size, OverFlag, HWPTAG[TagID]) \
+                              + ">" * 10 + "Suspicious"
+                        
                     Position += Size
                     
         except :
@@ -307,7 +324,7 @@ class ParseRecord():
             for fname in TarList :
                 pBuf = Common.FileControl.ReadFileByBinary( fname )
                 if CheckFormat.Check(pBuf) :
-                    File['logbuf'] += "\n\n\t    [-] Find PE : %s" % fname
+                    print "\t    [-] Find PE : %s" % fname
             
         except :
             print traceback.format_exc()

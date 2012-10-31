@@ -8,13 +8,14 @@ import Common
 from PDFScanner import PDF
 from OLEScanner import OLE
 from PEScanner import PE
+from HWPScanner import HWP23
 
 
 
 
 class Initialize():
     def GetOptions(self):
-        Parser = optparse.OptionParser(usage='usage: %prog [--IP] IP [--ID] LogID [--PW] LogPW [--src] SrcDir [--dst] DstDir\n')
+        Parser = optparse.OptionParser(usage='usage1: %prog [--IP] IP [--ID] LogID [--PW] LogPW [--src] SrcDir [--dst] DstDir\n\nusage2: %prog [-d,--directory] DstDir [--scan] * or FileFormat')
         Parser.add_option('--ip', help='< IP >')
         Parser.add_option('--id', help='< ID >')
         Parser.add_option('--pw', help='< Password >')
@@ -298,7 +299,7 @@ class Action():
     
             print "\t" + "=" * 40
             for Format in FileFormatList :
-                print "\t   %s   \t: %d" % ( Format, len(FileList[ Format ]) )
+                print "\t   %s       \t: %d" % ( Format, len(FileList[ Format ]) )
             print "\t" + "=" * 40
                             
             return True
@@ -328,15 +329,23 @@ class Action():
             return False
     
     
-    def OptScan(self):
+    def OptScan(self, ScanOpt):
         
         print "[+] Scanning By File Format"
         
         try :
+            EnableList = FileFormatList
+            if ScanOpt != "*" : 
+                EnableList = []
+                EnableList.append( ScanOpt )            
+            
             UpperPath = os.path.abspath( os.curdir )
             
             for Format in FileFormatList :
                 if Format in ExceptScan :
+                    continue
+                
+                if not Format in EnableList :
                     continue
                 
                 SubPath = UpperPath + "\\" + Format
@@ -351,7 +360,6 @@ class Action():
                     File = {}
                     File["fname"] = fname
                     File["pBuf"] = Common.FileControl.ReadFileByBinary(fname)
-                    File["logbuf"] = ""
                     File["format"] = Format
                     
                     eval(Format).Scan( File )
@@ -363,19 +371,26 @@ class Action():
             return False
 
 
-ClsCheck = ["PDF", "OLE", "PE"] 
-FileFormatList = ["PDF", "OLE", "PE", "Unknown", "Except"]
-ExceptScan = ["PE", "Unknown", "Except"]
+# Check File Object
+ClsCheck = ["PDF", "OLE", "PE", "HWP23"]
+
+# Enable File Object 
+FileFormatList = ["PDF", "OLE", "HWP23", "PE", "Unknown", "Except"]
+
+# Excepted Scan File Object
+ExceptScan = ["HWP23", "PE", "Unknown", "Except"]
 #------------------------------------------------------------------
 # PDF
 # 
 # OLE
-#  ├ HWP
+#  ├ HWP ( OLE )
 #  └ Office
 #      ├ DOC
 #      ├ PowerPoint
 #      └ Excel
 # 
+# HWP23 ( HWP2.0 or 3.0 )
+#
 # COFF
 #  └ PE
 # 
@@ -430,7 +445,7 @@ if __name__ == '__main__' :
             if not Act.Categorizer() :
                 exit(-1)
             
-            if not Act.OptScan() :
+            if not Act.OptScan( Options.scan ) :
                 exit(-1)
         
     except :
