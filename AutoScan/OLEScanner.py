@@ -67,7 +67,7 @@ class OLEStruct():
         
         # Exception Checking
         if (os.path.getsize( File["fname"] ) < 0x700000) and (Header["NumSAT"] > 109 or Header["NumMSAT"] > 0) :
-            print "\t\tSuspicious ( 0x%08X )" % os.path.getsize( File["fname"] )
+            print "\t\tSuspicious ( 0x%08x )" % os.path.getsize( File["fname"] )
         
         
         # Saving Need Data
