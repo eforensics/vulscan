@@ -57,7 +57,7 @@ class HWP():
                 print "\t\t[ERROR] FileHeader is NOT Saved"
                 return False
             
-            MapFHeader = MapHWP.MapFileHeader(File, FileHeader)
+            MapFHeader = MapHWP.MapFileHeader( FileHeader )
             if MapFHeader["Property"] & 1 :
                 File["Compression"] = True
             else :
@@ -99,7 +99,7 @@ class HWP():
     
 
 class MappedHWP():
-    def MapFileHeader(self, File, FileHeader):
+    def MapFileHeader(self, FileHeader):
         try :
             FHeader = {}
             OutFHeader = {}

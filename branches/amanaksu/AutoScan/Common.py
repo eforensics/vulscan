@@ -183,6 +183,7 @@ class FileControl():
             print fname
             print traceback.format_exc()
     
+    
     @classmethod
     def DeleteFile(cls, ext):
         try : 
@@ -192,7 +193,29 @@ class FileControl():
         except :
             print traceback.format_exc()
             
-            
+
+class ConvertDataType():
+    @classmethod
+    def unsigned16(cls, signed16):
+        return signed16 & 0xffffL
+    
+    @classmethod
+    def unsigned32(cls, signed32):
+        return signed32 & 0xffffffffL
+
+
+class PrintLog():
+    @classmethod
+    def PrintDict(cls, Name, Dict):
+        print "\t\t" + "=" * 20
+        print "\t\t\t%s" % Name
+        print "\t\t" + "-" * 20
+        for key in Dict.keys() :
+            print "\t\t%s\t:\t%s" % ( key, Dict[key] )
+        
+        print "\t\t" + "=" * 20
+
+
 
 class DecodeControl():
     def FlateDecode(self, fname, stream):
