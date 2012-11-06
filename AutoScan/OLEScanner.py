@@ -9,7 +9,6 @@ from HWPScanner import HWP
 from OfficeScanner import Office
 
 
-
 class OLEStruct():   
     def __init__(self, File):
         # OLE Header
@@ -38,7 +37,7 @@ class OLEStruct():
             MapOLE = MappedOLE()
             Header = MapOLE.MapHeader(File)
                         
-#            PrintOLE.PrintHeader( File, Header )
+            PrintOLE.PrintHeader( Header )
             
             # Parse MSAT
             MSAT = []
@@ -155,7 +154,6 @@ class OLEStruct():
 
             File["Directory"] = Sectors
 
-
             # Procedure Directory
             MapOLE = MappedOLE()
             
@@ -181,6 +179,8 @@ class OLEStruct():
                     RefSSAT.append( Directory["EntryName"] )
                 else :
                     print "\t\t[Failure] Failed Separation by referred type ( %s )" % Directory["EntryName"]
+            
+                PrintOLE.PrintDirectory(Directory)
             
                 
             # File Format Re-Separation
