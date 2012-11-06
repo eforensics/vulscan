@@ -70,9 +70,9 @@ class FTPServer():
             print "\t[-] Download"
             
             # Set Destination Folder 
-            if not os.path.isdir( Src ) :
-                print "\t\t[Failure] Don't Exist Folder ( %s )" % Src
-                return False
+#            if not os.path.isdir( Src ) :
+#                print "\t\t[Failure] Don't Exist Folder ( %s )" % Src
+#                return False
             
             if not os.path.isdir( Dst ) :
                 os.mkdir( Dst )
