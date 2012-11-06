@@ -37,7 +37,7 @@ class OLEStruct():
             MapOLE = MappedOLE()
             Header = MapOLE.MapHeader(File)
                         
-            PrintOLE.PrintHeader( Header )
+#            PrintOLE.PrintHeader( Header )
             
             # Parse MSAT
             MSAT = []
@@ -180,7 +180,7 @@ class OLEStruct():
                 else :
                     print "\t\t[Failure] Failed Separation by referred type ( %s )" % Directory["EntryName"]
             
-                PrintOLE.PrintDirectory(Directory)
+#                PrintOLE.PrintDirectory(Directory)
             
                 
             # File Format Re-Separation
@@ -259,6 +259,7 @@ class MappedOLE():
             return OutHeader
     
         OutHeader = Header
+        
         return OutHeader
 
 
@@ -287,6 +288,7 @@ class MappedOLE():
             return OutDirectory
         
         OutDirectory = Directory
+        
         return OutDirectory
             
 
