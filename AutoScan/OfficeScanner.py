@@ -62,7 +62,7 @@ class OperateOffice():
                         if RefEntry == "WordDocument" : 
                             File["WordDocument"] = Sector
                         
-                        if RefEntry == "RootEntry" :
+                        if RefEntry == "RootEntry" or RefEntry == "ootEntry" :
                             File["RootEntry"] = Sector                        
                         
                         if RefEntry == "FileHeader" :
@@ -123,7 +123,7 @@ class OperateOffice():
                 SecID = Table[SecID]
             
             Sector = Common.BufferControl.Read(tmpSector, 0, Size)
-            
+        
         except :
             print traceback.format_exc()
             return ""
