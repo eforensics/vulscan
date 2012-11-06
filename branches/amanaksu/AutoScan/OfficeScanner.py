@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 # import Public Module
-import optparse, traceback, sys, os, ftplib, shutil
+import traceback, sys, os
 
 # import Private Module
 import Common

@@ -16,14 +16,24 @@ class HWP23():
     def Check(cls, pBuf):
         try :
             HWP23Sig = Common.BufferControl.Read(pBuf, 0, 0x20)
-            if HWP23Sig.find( "HWP Document File V2.00" ) or HWP23Sig.find( "HWP Document File V3.00") :
+            if (HWP23Sig.find( "HWP Document File V2.00" ) != -1) or (HWP23Sig.find( "HWP Document File V3.00") != -1) :
                 return "HWP23"
             else :
                 return ""
         
         except :
             print traceback.format_exc()
+    
+
+    @classmethod
+    def Scan(cls, File):        
+        try :
             
+            return True
+        
+        except :
+            print traceback.format_exc()
+            return False
             
 
 #------------------------------------------------------------------------------------------------
