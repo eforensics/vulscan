@@ -1,11 +1,11 @@
 
-
-from traceback import format_exc
 from struct import unpack
+from traceback import format_exc
 from collections import namedtuple
 
 from Definition import *
-from Common import CFile, CBuffer
+from Common import CBuffer, CFile
+from OLE_Stream import CMappedStream
 
 
 class COffice():
@@ -30,7 +30,7 @@ class COffice():
                 print "\t\t\t[-] Failure - StructOfficeSector( WordDocument )"
                 return False
             
-#            CFile.fnWriteFile("c:\\test1\\%s_WordDocument.dump" % s_fname, s_WordDoc)
+            CFile.fnWriteFile("c:\\test1\\%s_WordDocument.dump" % s_fname, s_WordDoc)
             
 #            n_Cnt = 0
 #            while n_Cnt < dl_OLEDirectory.__len__() :
@@ -43,71 +43,35 @@ class COffice():
                 print "\t\t\t[-] Failure - MappedOfficeWordDocument()"
                 return False
 
-#            print "\t\t\t[*] File Version : %s" % g_Version[ l_FibRgFcLcbBlob.__len__() - 1 ]
+#            print "\t\t\t[*] File Version : Office%s" % g_Version[ l_FibRgFcLcbBlob.__len__() - 1 ]
 
 
 # Step 3. Check Encryption & Obfuscation
-#            s_Algorithm = ""
-#            if ( t_FibBase.Flag >> 15 ) & 1 :
-#                n_Encrypted = 1
-#            else :
-#                n_Encrypted = 0
-#                
-#            if ( t_FibBase.Flag >> 8 ) & 1 :
-#                n_Obfuscated = 1
-#            else :
-#                n_Obfuscated = 0
-#            
-#            if n_Encrypted == 0 and n_Obfuscated == 0 :
-#                s_Algorithm = "None"
-#            
-#            if n_Encrypted == 1 and n_Obfuscated == 0 :
-#                s_Algorithm = "RC4"
-#            
-#            if n_Encrypted == 1 and n_Obfuscated == 1 :
-#                s_Algorithm = "XOR"
-#            
-#            if s_Algorithm == "" :
-#                print "\t\t\t[-] Error - Check Encrypted/Obfuscation Case"
-#                return False
-#            
-#            if  s_Algorithm == "RC4" or s_Algorithm == "XOR" :
-#                print "\t\t\t[-] Failure - Do not Support! ( Algorithm : %s, Encrypted : %d, Obfuscation : %d )" % (s_Algorithm, n_Encrypted, n_Obfuscated)
-#                return False
-                
-
-# Step 4. Mapped Table Stream
-#            if ( t_FibBase.Flag >> 14 ) & 1 :
-#                s_StreamName = "1Table"
-#            else :
-#                s_StreamName = "0Table"
-
-#            if t_FibBase.Flag & 0x4000 :
-#                s_StreamName = "1Table"
-#            else :
-#                s_StreamName = "0Table"
-
-#            if (t_FibBase.Flag / 2**14) & (2**14-1) :
-#                s_StreamName = "1Table"
-#            else :
-#                s_StreamName = "0Table"
-            
-#            s_TableStream = StructOffice.fnStructOfficeSector(s_pBuf, None, dl_OLEDirectory, t_SATList, t_SSATList, s_StreamName)
-#            if s_TableStream == None :
-#                print "\t\t\t[-] Failure - StructOfficeSector( %s )" % StreamName
-#                return False
-            
-            l_StreamName = ["1Table", "0Table"]
-            for s_StreamName in l_StreamName :
-                s_TableStream = StructOffice.fnStructOfficeSector(s_pBuf, None, dl_OLEDirectory, t_SATList, t_SSATList, s_StreamName)
-                if s_TableStream != None :
-                    break
-            
-            if s_TableStream == None :
-                print "\t\t\t[-] Failure - StructOfficeSector( %s )" % l_StreamName
+            s_Algorithm = StructOffice.fnStructOfficeFlag(t_FibBase.Flag)
+            if s_Algorithm == None or s_Algorithm == "" :
+                print "\t\t\t[-] Failure - StructOfficeFlag( 0x%08X )" % t_FibBase.Flag
                 return False
             
-#            CFile.fnWriteFile("c:\\test1\\%s_%s.dump" % (s_fname, s_StreamName), s_TableStream)          
+            if  s_Algorithm == "RC4" or s_Algorithm == "XOR" :
+                print "\t\t\t[-] Failure - Do not Support! ( %s )" % s_Algorithm
+                return False
+            
+
+# Step 4. Mapped Table Stream
+            b_Bit = CBuffer.fnBitParse( t_FibBase.Flag, 9, 1 )
+            if b_Bit == None :
+                print "\t\t\t[-] Error - BitParse( Table Name, BitCount : 9 )"
+                return False
+            elif b_Bit == 1 :
+                s_StreamName = "1Table"
+            else :
+                s_StreamName = "0Table"
+                
+            s_TableStream = StructOffice.fnStructOfficeSector(s_pBuf, None, dl_OLEDirectory, t_SATList, t_SSATList, s_StreamName)
+            if s_TableStream == None :
+                print "\t\t\t[-] Failure - StructOfficeSector( %s )" % s_StreamName
+                return False
+                      
 
 # Step 5. Mapped Streams ( WordDocument, Table Stream, Data Stream, FibRgFcLcbBlob List )
             # it is 'Possible' that s_DataStream was None
@@ -115,7 +79,8 @@ class COffice():
             
 #            CFile.fnWriteFile("c:\\test1\\%s_Data.dump" % s_fname, s_DataStream)
 
-            if not StructOffice.fnStructOfficeStream(s_WordDoc, s_TableStream, s_DataStream, l_FibRgFcLcbBlob) :
+            StructStream = CStructStream()
+            if not StructStream.fnStructOfficeStream(s_fname, s_WordDoc, s_TableStream, s_DataStream, l_FibRgFcLcbBlob) :
                 print "\t\t\t[-] Failure - StructOfficeStream()"
                 return False
                     
@@ -291,27 +256,57 @@ class CStructOffice():
             print format_exc()
             return None, None
         
-        return t_FibBase, l_FibRgFcLcbBlob
-        
-
-    #    s_WordDoc                                [IN]                        WordDocument Stream Buffer
-    #    s_Table                                  [IN]                        Table Stream ( 0Table or 1Table )
-    #    s_Data                                   [IN]                        Data Stream
-    #    l_FibRgFcLcbBlob                         [IN]                        FibRgFcLcb List in FIB
-    #    BOOL Type                                [OUT]                       True / False
-    def fnStructOfficeStream(self, s_WordDoc, s_Table, s_Data, l_FibRgFcLcbBlob):
+        return t_FibBase, l_FibRgFcLcbBlob       
+    
+    
+    #    n_Flag                                [IN]                        t_FibBase.Flag Data
+    #    s_Algorithm                           [OUT]                       Algorithm ( XOR, RC4, None )
+    def fnStructOfficeFlag(self, n_Flag):
         
         try :
             
-            print "\t\t\t[*] To be continue........^^;;"
-            return True
-        
+            s_Algorithm = ""
+            
+            # Get Encrypted Bit
+            b_Bit_Encrypted = CBuffer.fnBitParse(n_Flag, 8, 1)
+            if b_Bit_Encrypted == None :
+                print "\t\t\t[-] Error - BitParse( Encrypted, BitCount : 8 )"
+                return None
+            elif b_Bit_Encrypted == 1 :
+                n_Encrypted = 1
+            else :
+                n_Encrypted = 0
+
+            # Get Obfuscated Bit
+            b_Bit_Obfuscated = CBuffer.fnBitParse(n_Flag, 15, 1)
+            if b_Bit_Obfuscated == None :
+                print "\t\t\t[-] Error - BitParse( Obfuscated, BitCount : 15 )"
+                return None
+            elif b_Bit_Obfuscated == 1 :
+                n_Obfuscated = 1
+            else :
+                n_Obfuscated = 0
+                
+            # Check Algorithm
+            if n_Encrypted == 0 and n_Obfuscated == 0 :
+                s_Algorithm = "None"
+            
+            if n_Encrypted == 1 and n_Obfuscated == 0 :
+                s_Algorithm = "RC4"
+            
+            if n_Encrypted == 1 and n_Obfuscated == 1 :
+                s_Algorithm = "XOR"
+            
         except :
             print format_exc()
-            return False
+            return None
         
-        return True
-
+        return s_Algorithm
+    
+    
+    
+    
+    
 
 
 class CMappedOffice():
@@ -553,5 +548,141 @@ class CMappedOffice():
         return t_FibRgFcLcb2007
 
 
+
+class CStructStream():
+
+    #    s_fname                                  [IN]                        File Full Name
+    #    s_WordDoc                                [IN]                        WordDocument Stream Buffer
+    #    s_Table                                  [IN]                        Table Stream ( 0Table or 1Table )
+    #    s_Data                                   [IN]                        Data Stream
+    #    l_FibRgFcLcbBlob                         [IN]                        FibRgFcLcb List in FIB
+    #    BOOL Type                                [OUT]                       True / False
+    def fnStructOfficeStream(self, s_fname, s_WordDoc, s_Table, s_Data, l_FibRgFcLcbBlob):
+        
+        try :
+
+# Step 1. Get Structure List
+            # Get Enable Structure Data by Structure's Member Size in l_FibRgFcLcbBlob
+            dl_StreamOffset, dl_StreamSize, dl_StreamName = self.fnStructStreamData(l_FibRgFcLcbBlob, " ")
+            if dl_StreamOffset == None or dl_StreamOffset == [] :
+                print "\t\t\t[-] Failure - StructStreamData( Offset )"
+                return False
+            if dl_StreamSize == None or dl_StreamSize == [] :
+                print "\t\t\t[-] Failure - StructStreamData( Size )"
+                return False
+            if dl_StreamName == None or dl_StreamName == [] :
+                print "\t\t\t[-] Failure - StructStreamData( Name )"
+                return False
+        
+        
+#            print "\t\t\t" + "=" * 50
+#            print "\t\t\t%4s%19s\t%10s\t%7s" % ("Index", "Member", "Offset", "Size")
+#            print "\t\t\t" + "-" * 50
+#            for n_Ver in range( dl_StreamOffset.__len__() ) :
+#                print "\t\t\t[ Office%4s ]" % g_Version[ n_Ver ]
+#                for n_Cnt in range( dl_StreamOffset[n_Ver].__len__() ) :
+#                    print "\t\t\t%02X%22s\t0x%08X\t0x%08X" % (n_Cnt, dl_StreamName[n_Ver][n_Cnt], dl_StreamOffset[n_Ver][n_Cnt], dl_StreamSize[n_Ver][n_Cnt])
+#            print "\t\t\t" + "=" * 50
+        
+
+# Step 2. Parse Structure List
+            if not self.fnStructParseStream(s_fname, s_WordDoc, s_Table, dl_StreamName, dl_StreamOffset, dl_StreamSize) :
+                print "\t\t\t[-] Failure - StructParseStream()"
+                return False
+        
+        except :
+            print format_exc()
+            return False
+        
+        return True
+
+
+    #    l_FibRgFcLcbBlob                        [IN]                        FibRgFcLcbBlob Lists
+    #    dl_StreamOffset                         [OUT]                       Stream Offset Lists for ParseTarget
+    #    dl_StreamSize                           [OUT]                       Stream Size Lists for ParseTarget
+    #    dl_StreamName                           [OUT]                       Stream Name Lists for ParseTarget
+    def fnStructStreamData(self, l_FibRgFcLcbBlob, s_Seperator):
+        
+        dl_StreamOffset = []
+        dl_StreamSize = []
+        dl_StreamName = []
+        
+        try :
+            # Convert String2List By Seperator "Null Space"
+            l_FibFcLcbName = []
+            dl_FibFcLcbName = []
+            for n_Ver in range( l_FibRgFcLcbBlob.__len__() ) :
+                l_FibFcLcbName = CBuffer.fnStr2List( eval( "RULE_FIBFCLCB_NAME_" + g_Version[ n_Ver ] ), s_Seperator )
+                dl_FibFcLcbName.append( l_FibFcLcbName )
+               
+            
+            # Get Stream Data
+            for n_Ver in range( l_FibRgFcLcbBlob.__len__() ) :            # FibRgFcLcb97 ~ FibRgFcLcb2007
+                l_Fc = []
+                l_Lcb = []
+                l_Name = []
+                
+                
+                for n_Cnt in range( l_FibRgFcLcbBlob[n_Ver].__len__() / 2 ) :
+                    n_Fc = l_FibRgFcLcbBlob[n_Ver][2 * n_Cnt]
+                    n_Lcb = l_FibRgFcLcbBlob[n_Ver][2 * n_Cnt + 1]
+                    s_FcName = dl_FibFcLcbName[n_Ver][2 * n_Cnt]
+                    s_LcbName = dl_FibFcLcbName[n_Ver][2 * n_Cnt + 1]
+                    
+                    if n_Lcb == 0 :
+                        continue
+                    
+                    if s_FcName in g_ExceptList :
+                        continue
+                    
+                    if s_FcName[:2].find("fc") != 0 or s_LcbName[:3].find("lcb") != 0 :
+                        print "\t\t\t[-] Error (%s[Ret : %d], %s[Ret : %d])" % (s_FcName, s_FcName[:2].find("fc"), s_LcbName, s_LcbName[:3].find("lcb"))
+                        return None, None, None
+                    
+                    l_Fc.append( n_Fc )
+                    l_Lcb.append( n_Lcb )
+                    l_Name.append( s_FcName[2:] )
+                    
+                    
+                dl_StreamOffset.append( l_Fc )
+                dl_StreamSize.append( l_Lcb )
+                dl_StreamName.append( l_Name ) 
+        
+        except IndexError :
+            print format_exc()
+            print "n_Ver : 0x%04X, n_Cnt : 0x%04X" % (n_Ver, n_Cnt)
+            return None, None, None
+        
+        except :
+            print format_exc()
+            return None, None, None
+        
+        return dl_StreamOffset, dl_StreamSize, dl_StreamName
+
+
+    #    s_fname                                          [IN]                        File Full Name
+    #    s_WordDoc                                        [IN]                        WordDocument Stream Buffer
+    #    s_Table                                          [IN]                        Table Stream Buffer ( 0Table or 1Table )
+    #    dl_Name                                          [IN]                        Member Name in Structure
+    #    dl_Offset                                        [IN]                        Member Offset in Table Stream
+    #    dl_Size                                          [IN]                        Member Size in Table Stream
+    #    BOOL Type                                        [OUT]                       True / False
+    def fnStructParseStream(self, s_fname, s_WordDoc, s_Table, dl_Name, dl_Offset, dl_Size):
+        
+        try :
+            
+            MappedStream = CMappedStream()
+            
+            for n_Ver in range( dl_Name.__len__() ) :
+                for s_Name in dl_Name[ n_Ver ] :
+                    if s_Name in g_StructList :
+                        eval("MappedStream.fnMapped" + s_Name)( s_fname, s_WordDoc, s_Table, dl_Offset[ n_Ver ][ dl_Name[ n_Ver ].index( s_Name ) ], dl_Size[ n_Ver ][ dl_Name[ n_Ver ].index( s_Name )] )           
+            
+        except :
+            print format_exc()
+            return False
+
+        return True
+        
 
 

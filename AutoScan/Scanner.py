@@ -27,7 +27,7 @@ class CInitialize():
     def fnGetOptions(self):
         Parser = OptionParser(usage='Crawling - %prog [--ip] IP [--id] LogID [--pw] LogPW [--src] SrcDir [--dst] DstDir\n\
                                      Delete   - %prog [-d,--directory] DstDir [--delete] FileExtend\n\
-                                     Scan     - %prog [-d,--directory] DstDir [--scan] FileFormat')
+                                     DirScan  - %prog [-d,--directory] DstDir [--scan] FileFormat')
         # Crawling
         Parser.add_option('--ip', help='< IP >')
         Parser.add_option('--id', help='< ID >')
@@ -39,6 +39,7 @@ class CInitialize():
         Parser.add_option('-d', '--directory', help='< Standard Directory >')
         Parser.add_option('--delete', help='< File Extend >')
         Parser.add_option('--scan', help='< Format >')
+        Parser.add_option('--log', help='< Print File Struct >')
         (options, args) = Parser.parse_args()
             
         if len( sys.argv ) < 2 :

@@ -67,7 +67,7 @@ class COLE():
             
             if n_SATCnt != t_OLEHeader.NumSAT :
                 print "\t\t[-] Error - SAT Count( Index Count : 0x%08X, NumSAT : 0x%08X )" % (n_SATCnt, t_OLEHeader.NumSAT) 
-            
+                        
             
 # Step 3. Extract OLE SAT List 
             t_SATList = StructOLE.fnStructOLESAT(s_pBuf, t_MSATList)
@@ -328,6 +328,12 @@ class CMappedOLE():
             return None
         
         return t_OLEDirectory
+
+
+
+
+
+
 
 
 
