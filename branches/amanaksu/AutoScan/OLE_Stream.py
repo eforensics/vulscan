@@ -7,8 +7,7 @@ from collections import namedtuple
 
 from Definition import *
 from Common import CBuffer, CFile
-
-
+from OLE_SPM import *
 
 class CMappedStream():
     
@@ -66,9 +65,10 @@ class CMappedStream():
 
 
 # Step 4. Parse Chpx.GrpPrl
-
-
-
+            B_Ret = ParseStream.fnParseGrpPrl(dl_Chpx)
+            if B_Ret != True :
+                print "\t" * 4 + "[-] Failure - ParseGrpPrl()"
+                return False
         
         
         except :
@@ -192,6 +192,7 @@ class CParseStream():
                         continue
                     
                     n_cb = CBuffer.fnReadByte(l_ChpxFkp[n_DumpIndex], n_Offset)
+                    n_Offset += 1
                     if n_cb == 0 :
                         continue
                     s_Chpx = l_ChpxFkp[n_DumpIndex][n_Offset:n_Offset + n_cb]
@@ -209,14 +210,30 @@ class CParseStream():
         return dl_Rgfc_Text, dl_Chpx
 
 
+    #    dl_Chpx                                [IN]                    Double-List Chpx per Dump
+    #    dl_Prl_Operand                         [OUT]                   Double-List Prl Operand
+    def fnParseGrpPrl(self, dl_Chpx):
+        
+        try :
+            
+            MappedBasic = CMappedBasic()
+            
+            for n_DumpIndex in range( dl_Chpx.__len__() ) :
+                l_Chpx = dl_Chpx[n_DumpIndex]
+                B_Ret = MappedBasic.fnParsePrl( l_Chpx )
+                if B_Ret != True :
+                    print "\t" * 4 + "[-] Failure - ParsePrl( Chpx Dump 0x%08X nd )" % (n_DumpIndex)
+                    return False
+                
+        except :
+            print format_exc()
+            return None
+        
+        return True
         
 
 
 class CMappedBasic():
-    
-    def fnParseCP(self):
-        pass    
-    
     
     #    s_Table                                          [IN]                        Table Stream Buffer ( 0Table or 1Table )
     #    n_Offset                                         [IN]                        Member Offset in Table Stream
@@ -305,12 +322,230 @@ class CMappedBasic():
         
         return dl_Member1, dl_Member2
         
+    
+    #    l_Chpx                                        [IN]                        Chpx Buffer List
+    #    l_Prl_Operand                                 [IN]                        Prl's Operand List
+    def fnParsePrl(self, l_Chpx):
         
+        try :
+            
+            for n_Index in range( l_Chpx.__len__() ) :
+                s_Chpx = l_Chpx[n_Index]
+                n_Sprm = CBuffer.fnReadWord(s_Chpx, 0)
+                t_Sprm = self.fnParseSprm(n_Sprm)
+                
+                if t_Sprm.sgc > 0 and t_Sprm.sgc < 6 :
+                    eval( "self.fnParse" + SINGLE_PROPERTY_MODIFIER[ t_Sprm.sgc ] + "PropertyModifier" )( n_Sprm, t_Sprm )
+                else :
+                    print "\t" * 3 + "[-] Error - 0x%04X" % n_Sprm,
+                    print t_Sprm
+                    continue
         
+        except :
+            print format_exc()
+            return None
+
+        return True
+  
         
+    #    n_Sprm                                        [IN]                        Sprm Data
+    #    t_Sprm                                        [OUT]                       Mapped Sprm tuple
+    def fnParseSprm(self, n_Sprm):
         
+        try :
+            
+            t_Sprm_Name = namedtuple("Sprm", RULE_SPRM_NAME)
+            t_Sprm = t_Sprm_Name._make( CBuffer.fnBitUnpack(RULE_SPRM_PATTERN, n_Sprm) )
+            return t_Sprm
+            
+        except : 
+            print format_exc()
+            return None
+
+    
+    #    n_Sprm                                        [IN]                        Sprm Data
+    #    t_Sprm                                        [IN]                        Mapped Sprm tuple
+    #                                                  [OUT]                       True / False / None
+    def fnParseCharPropertyModifier(self, n_Sprm, t_Sprm ):
         
+        try : 
+            
+            print "\t" * 3 + "[*] Character Property : 0x%04X - %s" % (n_Sprm, self.fnCheckCharPropertyModifier(n_Sprm) )
+            
+#            CharPropertyModifier = CCharPropertyModifier()
+#            eval( "CharPropertyModifier.fnParse" + self.fnCheckCharPropertyModifier(n_Sprm) )
         
+        except :
+            print format_exc()
+            return None
+        
+        return True
         
     
+    #
+    def fnParseParaPropertyModifier(self, n_Sprm, t_Sprm ):
+        
+        try : 
+        
+            print "\t" * 3 + "[*] Paragraph Property : 0x%04X - %s" % (n_Sprm, self.fnCheckParaPropertyModifier(n_Sprm) )
+            
+#            ParagraphPropertyModifier = CParagraphPropertyModifier()
+#            eval( "ParagraphPropertyModifier.fnParse" + self.fnCheckParaPropertyModifier(n_Sprm) )
+        
+        except :
+            print format_exc()
+            return None
+
+        return True
+    
+
+    #
+    def fnParseTablePropertyModifier(self, n_Sprm, t_Sprm ):
+        
+        try : 
+        
+            print "\t" * 3 + "[*] Table Property : 0x%04X - %s" % (n_Sprm, self.fnCheckTablePropertyModifier(n_Sprm) )
+        
+#            TablePropertyModifier = CTablePropertyModifier()
+#            eval( "TablePropertyModifier.fnParse" + self.fnCheckTablePropertyModifier(n_Sprm) )
+        
+        except :
+            print format_exc()
+            return None
+        
+        return True
+
+
+    #
+    def fnParseSectPropertyModifier(self, n_Sprm, t_Sprm ):
+        
+        try : 
+        
+            print "\t" * 3 + "[*] Section Property : 0x%04X - %s" % (n_Sprm, self.fnCheckSectPropertyModifier(n_Sprm) )
+            
+#            SectionPropertyModifier = CSectionPropertyModifier()
+#            eval( "SectionPropertyModifier.fnParse" + self.fnCheckSectPropertyModifier(n_Sprm) )
+        
+        except :
+            print format_exc()
+            return None
+        
+        return True
+        
+
+    #
+    def fnParsePictPropertyModifier(self, n_Sprm, t_Sprm ):
+        
+        try : 
+        
+            print "\t" * 3 + "[*] Picture Property : 0x%04X - %s" % (n_Sprm, self.fnCheckPictPropertyModifier(n_Sprm) )
+        
+#            PicturePropertyModifier = CPicturePropertyModifier()
+#            eval( "PicturePropertyModifier.fnParse" + self.fnCheckPictPropertyModifier(n_Sprm) )
+        
+        except :
+            print format_exc()
+            return None
+        
+        return True
+        
+
+    #    n_Sprm                                        [IN]                        Sprm Data
+    #    s_CPM_Name                                    [OUT]                       Entity By n_Sprm in CHAR_PROPERTY_MODIFIER_NAME
+    def fnCheckCharPropertyModifier(self, n_Sprm):
+        
+        try :
+            
+            s_CPM_Name = ""
+            if n_Sprm in CHAR_PROPERTY_MODIFIER_VALUE :
+                n_Index = CHAR_PROPERTY_MODIFIER_VALUE.index( n_Sprm )
+                s_CPM_Name = CHAR_PROPERTY_MODIFIER_NAME[ n_Index ]
+                
+            return s_CPM_Name
+        
+        except :
+            print format_exc()
+            return None
+
+
+    #    n_Sprm                                        [IN]                        Sprm Data
+    #    s_PPM_Name                                    [OUT]                       Entity By n_Sprm in PARA_PROPERTY_MODIFIER_NAME
+    def fnCheckParaPropertyModifier(self, n_Sprm):
+        
+        try :
+            
+            s_PPM_Name = ""
+            if n_Sprm in PARA_PROPERTY_MODIFIER_VALUE :
+                n_Index = PARA_PROPERTY_MODIFIER_VALUE.index( n_Sprm )
+                s_PPM_Name = PARA_PROPERTY_MODIFIER_NAME[ n_Index ]
+            
+            return s_PPM_Name
+        
+        except :
+            print format_exc()
+            return None
+
+    
+    #    n_Sprm                                        [IN]                        Sprm Data
+    #    s_TPM_Name                                    [OUT]                       Entity By n_Sprm in TABLE_PROPERTY_MODIFIER_NAME
+    def fnCheckTablePropertyModifier(self, n_Sprm):
+        
+        try :
+            # Referred page 136 in [MS-DOC].pdf
+            s_TPM_Name = ""
+            if n_Sprm in TABLE_PROPERTY_MODIFIER_VALUE :
+                n_Index = TABLE_PROPERTY_MODIFIER_VALUE.index( n_Sprm )
+                s_TPM_Name = TABLE_PROPERTY_MODIFIER_NAME[ n_Index ]
+            
+            return s_TPM_Name
+                         
+        except :
+            print format_exc()
+            return None
+
+
+    #    n_Sprm                                        [IN]                        Sprm Data
+    #    s_SPM_Name                                    [OUT]                       Entity By n_Sprm in SECT_PROPERTY_MODIFIER_NAME
+    def fnCheckSectPropertyModifier(self, n_Sprm):
+        
+        try :
+            
+            s_SPM_Name = ""
+            if n_Sprm in SECT_PROPERTY_MODIFIER_VALUE :
+                n_Index = SECT_PROPERTY_MODIFIER_VALUE.index( n_Sprm )
+                s_SPM_Name = SECT_PROPERTY_MODIFIER_NAME[ n_Index]
+            
+            return s_SPM_Name
+        
+        except :
+            print format_exc()
+            return None
+
+
+    #    n_Sprm                                        [IN]                        Sprm Data
+    #    s_PPM_Name                                    [OUT]                       Entity By n_Sprm in PICT_PROPERTY_MODIFIER_NAME
+    def fnCheckPictPropertyModifier(self, n_Sprm):
+        
+        try :
+            
+            s_PPM_Name = ""
+            if n_Sprm in PICT_PROPERTY_MODIFIER_VALUE :
+                n_Index = PICT_PROPERTY_MODIFIER_VALUE.index( n_Sprm )
+                s_PPM_Name = PICT_PROPERTY_MODIFIER_NAME[ n_Index ]
+            
+            return s_PPM_Name
+        
+        except :
+            print format_exc()
+            return None
+        
+        
+        
+        
+        
+        
+        
+        
+        
+            
     

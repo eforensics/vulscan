@@ -97,10 +97,11 @@ class CBuffer():
    
     #    s_Buffer                            [IN]                    File Buffer
     #    Position                            [IN]                    Reading Position
-    #                                        [OUT]                   Unpacked 2Bytes Data
+    #                                        [OUT]                   Unpacked 2Bytes tuple  Data
     @classmethod
     def fnReadWord(cls, s_Buffer, n_Position):
         try :
+            
             s_Val = s_Buffer[n_Position:n_Position+2]
             return unpack("<H", s_Val)[0]
         
@@ -115,6 +116,7 @@ class CBuffer():
     @classmethod
     def fnReadDword(cls, s_Buffer, n_Position):
         try :
+            
             s_Val = s_Buffer[n_Position:n_Position+4]
             return unpack("<L", s_Val)[0]
         
@@ -174,11 +176,12 @@ class CBuffer():
             print format_exc()
             return None
 
+
     #    s_Rule                                    [IN]                        Parse Pattern Rule String
     #    n_Data                                    [IN]                        Parse Target Data ( Little-Endian )
     #    l_Unpack                                  [OUT]                       Unpacked Data 
     @classmethod
-    def fnBitUnpack(cls, s_Rule, n_Data, ):
+    def fnBitUnpack(cls, s_Rule, n_Data):
         
         try :
             l_Unpack = []
