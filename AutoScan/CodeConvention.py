@@ -16,6 +16,7 @@
 #                    Tuple           t                t_OLEHeader
 #                    List            l                l_MSAT
 #                    Double-List     dl               dl_OLEDirectory
+#                    DDouble-List    ddl              ddl_Object
 #                    Dictionary      d                d_Format
 #                    String          s                s_Buffer
 #                    Binary          b                b_Buffer

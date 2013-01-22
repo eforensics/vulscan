@@ -160,7 +160,7 @@ RULE_FIBFCLCB_NAME_2007 = ('fcPlcfmthd lcbPlcfmthd fcSttbfBkmkMoveFrom lcbSttbfB
 
 
 
-# Sub-Structure
+# OLE-Office : Sub-Structure
 RULE_PNFKPCHPX_PATTERN = '22,10'
 RULE_PNFKPCHPX_NAME = ('Pn Unused') 
 
@@ -169,7 +169,7 @@ RULE_SPRM_PATTERN = '9,1,3,3'
 RULE_SPRM_NAME = ('ispmd A sgc spra')
 
 
-# Single Property Modifier
+# OLE-Office : Single Property Modifier
 SINGLE_PROPERTY_MODIFIER = {1:"Para", 2:"Char", 3:"Pict", 4:"Sect", 5:"Table"}
 
 CHAR_PROPERTY_MODIFIER_VALUE = [0x0800, 0x0801, 0x0802, 0x6A03, 0x4804, 0x6805, 0x0806, 0x4807, 0x6A09, 0x080A, 0x2A0C, 0x0811, 0x6815, 0x6816, 0x6817, 0x0818, 0xC81A, 0x4A30, 0xCA31, 0x2A33, 0x2A34, 0x0835, 0x0836, 0x0838, 0x0838, 0x0839, 0x083A, 0x083B, 0x083C, 0x2A3E, 0x8840, 0x2A42, 0x4A43, 0x4845, 0xCA47, 0x2A48, 0x484B, 0x484E, 0x4A4F, 0x4A50, 0x4A51, 0x4852, 0x2A53, 0x0854, 0x0855, 0x0856, 0xCA57, 0x0858, 0x2859, 0x085A, 0x085C, 0x085D, 0x4A5E, 0x485F, 0x4A60, 0x4A61, 0xCA62, 0x4863, 0x6864, 0x6865, 0x4866, 0x4867, 0x0868, 0x486D, 0x486E, 0x286F, 0x6870, 0xCA71, 0xCA72, 0x4873, 0x4874, 0x0875, 0xCA76, 0x6877, 0xCA78, 0x2879, 0x0882, 0x2A83, 0xCA85, 0x2A86, 0x6887, 0x4888, 0xCA89, 0x2A90]
@@ -189,6 +189,36 @@ PICT_PROPERTY_MODIFIER_NAME = ["sprmPicBrcTop80", "sprmPicBrcLeft80", "sprmPicBr
 
 
 
+# PDF
+# Extract Object 
+REGULAR_EXPRESSION_OBJECT = ["obj\s{0,10}<<(.{0,100}?/Length\s([0-9]{1,8}).*?)>>[\s%]*?stream(.*?)endstream[^=]", "obj\s{0,10}<<(.{0,100}.*?)>>[\s%]*?stream(.*?)endstream[^=]"]
+REGULAR_EXPRESSION_ESCAPE = "(\w*?)\s*?=\s*?(unescape\((.*?)\))"
+
+# Condition JavaScript
+g_JavaScript = ['/JS', '/JavaScript', '/FlateDecode', '/ASCII85Decode', '/ASCIIHexDecode', '/RunLengthDecode', '/LZWDecode']
+
+# Decoding String & Decode Function
+g_Decode = ['/FlateDecode', '/Fl', '/ASCII85Decode', '/ASCIIHexDecode', '/RunLengthDecode', '/LZWDecode']
+
+# List Related Suspicious
+g_SuspiciousList = ['Event', 'Action', 'JavaScript', 'Embedded']
+g_SuspiciousEvents = ['/OpenAction', '/AA']
+g_SuspiciousActions = ['/Launch', '/SubmitForm', '/ImportData']
+g_SuspiciousJS = ['mailto', 
+                  'Collab.collectEmailInfo', 
+                  'util.printf', 
+                  'getIcon', 
+                  'getAnnots',                   
+                  'spell.customDictionaryOpen', 
+                  'media.newPlayer']
+
+g_CVENo = ["CVE-2007-5020", 
+           "CVE-2007-5659", 
+           "CVE-2008-2992", 
+           "CVE-2009-0927", 
+           "CVE-2009-1492", 
+           "CVE-2009-1493", 
+           "CVE-2009-4324"]
 
 
 

@@ -12,7 +12,7 @@ from Common import CFile
 
 
 
-#from PDF import CPDF
+from PDF import CPDF
 from OLE import COLE
 #from PE import CPE
 #from HWP import CHWP23
@@ -272,14 +272,14 @@ class CAction():
 
 
 # Check File Object
-g_ClsCheck = ["OLE"]
+g_ClsCheck = ["PDF"]
 #g_ClsCheck = ["OLE", "PDF", "PE", "HWP23", "RTF"]
 
 # Enable File Object 
 g_FileFormatList = ["OLE", "PDF", "HWP23", "RTF", "PE", "Unknown", "Except"]
 
 # Excepted Scan File Object
-g_ExceptScan = ["PDF", "HWP23", "RTF", "PE", "Unknown", "Except"]
+g_ExceptScan = ["OLE", "HWP23", "RTF", "PE", "Unknown", "Except"]
 #------------------------------------------------------------------
 # PDF
 # 
