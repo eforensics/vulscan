@@ -284,7 +284,7 @@ class CExploitHWP():
                 n_Record = CBuffer.fnReadDword(s_Decrypt, n_Position)
                 if n_Record == None :
                     print "\t\t\t[-] Error - fnReadDword(%s, 0x%08X, 0x%08X)" % (s_SSecName, n_Position, n_Record)
-                    return False
+                    return False, None
             
                 n_Position += 4
                 
