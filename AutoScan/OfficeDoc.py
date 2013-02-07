@@ -95,11 +95,13 @@ class CStreamDOC():
             MappedBasic = CMappedBasic()
             MappedStream = CMappedStream()
             
+            
 # Step 1. Mapped Plc - OK
             l_fc, l_Pn = MappedBasic.fnMappedPlc(s_Table, n_Offset, n_Size, None, 4)
             if l_fc == None or l_Pn == None :
                 print "\t" * 3 + "[-] Failure - MappedPlc()"
                 return False
+            
             
 # Extra Step. Check General Vulnerability
             Vulnerability = CVulnerability()
@@ -678,7 +680,8 @@ class CMappedStream():
                     
                     s_Operand = s_GrpPrl[n_Position:n_Position + n_szOperand]
                     n_Position += n_szOperand
-                    if n_Position == s_GrpPrl.__len__() or n_Position > s_GrpPrl.__len__() :
+                    
+                    if n_Position >= s_GrpPrl.__len__() :
                         break
                     
 #                    if n_sgc > 0 and n_sgc < 6 :
@@ -962,7 +965,7 @@ class CMappedBasic():
             n_Cnt = (n_Size / 4) / 2
             s_Plc = s_Buffer[n_Offset:n_Offset + n_Size]
             if s_Plc == "" :
-                print "\t" * 4 + "[-] Error - Plc is Not in Table Stream. ( Table Buffer : 0x%08X, Offset: 0x%08X, Size : 0x%08X )" % (s_Buffer.__len__(), n_Offset, n_Size)
+                print "\t" * 4 + "[-] Error - Out of Range! ( 1Table Buffer Size : 0x%08X, Offset: 0x%08X, Size : 0x%08X )" % (s_Buffer.__len__(), n_Offset, n_Size)
                 return None, None
             
 # Step 1. Get Plc.fc List            

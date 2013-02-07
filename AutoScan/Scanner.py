@@ -25,9 +25,9 @@ class CInitialize():
     #        Delete    : Scanner.py -d <DestinationDirectory> --delete <FileExtend>
     #        Scan      : Scanner.py -d <DestinationDirectory> --scan <FileFormat>
     def fnGetOptions(self):
-        Parser = OptionParser(usage='Crawling - %prog [--ip] IP [--id] LogID [--pw] LogPW [--src] SrcDir [--dst] DstDir\n\
-                                     Delete   - %prog [-d,--directory] DstDir [--delete] FileExtend\n\
-                                     DirScan  - %prog [-d,--directory] DstDir [--scan] FileFormat')
+        Parser = OptionParser(usage='\n< Crawling >\n%prog [--ip] IP [--id] LogID [--pw] LogPW [--src] SrcDir [--dst] DstDir\
+                                     \n< Delete >\n%prog [-d,--directory] DstDir [--delete] FileExtend\
+                                     \n< DirScan >\n%prog [-d,--directory] DstDir [--scan] FileFormat')
         # Crawling
         Parser.add_option('--ip', help='< IP >')
         Parser.add_option('--id', help='< ID >')
