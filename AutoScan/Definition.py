@@ -1,5 +1,10 @@
 
 
+# Dump Path
+g_DumpPath = "c:\\test1"
+g_Size = {1:"Byte", 2:"Word", 4:"Dword"}
+g_ConvertSig = ["&H"]
+
 #######################################
 #    Struct.Unpack( ) Format
 #######################################
@@ -107,66 +112,134 @@ HWPTAG = {HWPTAG_BEGIN      :"HWPTAG_DOCUMENT_PROPERTIES",
 
 
 # OLE-Office
+g_FIBMagicNumber = [0xA5DC, 0xA5EC]     # Word 6.0, Word 7.0 (95), Word 8.0 (97)
+g_VersionByFIBMagicNumber = ["Word 6.0 / 7.0 (95)", "Word 8.0 (97)"]
+
 g_Version = ["97", "2000", "2002", "2003", "2007"]
 g_VersionCount = [186, 30, 56, 56, 38]
+
+# Word 97 ( Only ) : 0x00C2
+# Word 97 ~ 2003 : 0x00C1, 0x00D9, 0x0101, 0x010C, 0x0112    
+g_Fib = [0x00C1, 0x00D9, 0x0101, 0x010C, 0x0112]   
+g_cbRgFcLcb = [0x005D, 0x006C, 0x0088, 0x00A4, 0x00B7]
+g_cswNew = [0x0000, 0x0002, 0x0002, 0x0002, 0x0005]
+
+
+g_StructList = ["SttbfBkmkFactoid", "Stshf", "PlcfSed", "PlcfHdd", "PlcBteChpx", "PlcfBtePapx", "SttbfFfn", "Cmds", "Dop", "SttbfAssoc", "Clx", "DggInfo", "SttbfRMark", "PlcfSpl", "PlcfGram", "PlcfTch", "RmdThreading", "Plrsid", "PlcfBklFactoid", "PlcfBkfFactoid", "FactoidData"]
+#g_StructList = ["SttbfBkmkFactoid"]
+g_ExceptList = ["dwLowDateTime", "dwHighDateTime", ]
+
+# OLE-Office : Sub-Structure
+g_stkValue = ["stkPara", "stkChar", "stkTable", "stkList"]
+g_sti = [0,1,2,3,4,5,6,7,8,9,65,105,107,None,None]
+g_istd = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+
+PROPBAGSTORE_NAME = ["cFactoidType", "FactoidTypes", "chHdr", "sVer", "cFactoid", "cste", "stringTable"]
+PROPBAGS_NAME = ["id", "cProp", "cbUnknown", "Properties"]
+FACTOIDTYPE_NAME = ["cbFactoid", "id", "rgbUri", "rgbTag", "rgbDownloadURL"]
+
 
 SIZE_OF_FIBBASE = 0x20      # 32Bytes
 RULE_FIBBASE_PATTERN = '=7H1L2B2H2L'
 RULE_FIBBASE_NAME = ('wIdent nFib unused lid pnNext Flag nFibBack lKey envr envtFlag reserved3 reserved4 reserved5 reserved6')
 
-
 SIZE_OF_FIBW97 = 0x1C        # 28Bytes
 RULE_FIBW97_PATTERN = '=14H'
 RULE_FIBW97_NAME = ('reserved1 reserved2 reserved3 reserved4 reserved5 reserved6 reserved7 reserved8 reserved9 reserved10 reserved11 reserved12 reserved13 lidFE')
-
 
 SIZE_OF_FIBLW97 = 0x58      # 88Bytes
 RULE_FIBLW97_PATTERN = '=22L'
 RULE_FIBLW97_NAME = ('cbMac reserved1 reserved2 ccpText ccpFtn ccpHdd reserved3 ccpAtn ccpEdn ccpTxbx ccpHdrTxbx reserved4 reserved5 reserved6 reserved7 reserved8 reserved9 reserved10 reserved11 reserved12 reserved13 reserved14')
 
-
-g_Fib = [0x00C1, 0x00D9, 0x0101, 0x010C, 0x0112]
-g_cbRgFcLcb = [0x005D, 0x006C, 0x0088, 0x00A4, 0x00B7]
-g_cswNew = [0x0000, 0x0002, 0x0002, 0x0002, 0x0005]
-
-
-g_StructList = ["PlcBteChpx"]
-g_ExceptList = ["dwLowDateTime", "dwHighDateTime"]
-
-
 SIZE_OF_FIBFCLCB_97 = 0x2E8       # 744Bytes
 RULE_FIBFCLCB_PATTERN_97 = '=186L'
 RULE_FIBFCLCB_NAME_97 = ('fcStshfOrig lcbStshfOrig fcStshf lcbStshf fcPlcffndRef lcbPlcffndRef fcPlcffndTxt lcbPlcffndTxt fcPlcfandRef lcbPlcfandRef fcPlcfandTxt lcbPlcfandTxt fcPlcfSed lcbPlcfSed fcPlcPad lcbPlcPad fcPlcfPhe lcbPlcfPhe fcSttbfGlsy lcbSttbfGlsy fcPlcfGlsy lcbPlcfGlsy fcPlcfHdd lcbPlcfHdd fcPlcBteChpx lcbPlcBteChpx fcPlcfBtePapx lcbPlcfBtePapx fcPlcfSea lcbPlcfSea fcSttbfFfn lcbSttbfFfn fcPlcfFldMom lcbPlcfFldMom fcPlcfFldHdr lcbPlcfFldHdr fcPlcfFldFtn lcbPlcfFldFtn fcPlcfFldAtn lcbPlcfFldAtn fcPlcfFldMcr lcbPlcfFldMcr fcSttbfBkmk lcbSttbfBkmk fcPlcfBkf lcbPlcfBkf fcPlcfBkl lcbPlcfBkl fcCmds lcbCmds fcUnused1 lcbUnused1 fcSttbfMcr lcbSttbfMcr fcPrDrvr lcbPDrvr fcPrEnvPort lcbPrEnvPort fcPrEnvLand lcbPrEnvLand fcWss lcbWss fcDop lcbDop fcSttbfAssoc lcbSttbfAssoc fcClx lcbClx fcPlcfPgdFtn lcbPlcfPgdFtn fcAutosaveSource lcbAutosaveSource fcGrpXstAtnOwners lcbGrpXstAtnOwners fcSttbfAtnBkmk lcbSttbfAtnBkmk fcUnused3 lcbUnused3 fcUnused2 lcbUnused2 fcPlcSpaMon lcbPlcSpaMon fcPlcSpaHdr lcbPlcSpaHdr fcPlcAtnBkf lcbPlcAtnBkf fcPlcAtnBkl lcbPlcAtnBkl fcPms lcbPms fcFormFldSttbs lcbFormFldSttbs fcPlcfendRef lcbPlcfendRef fcPlcfendTxt lcbPlcfendTxt fcPlcfFldEdn lcbPlcfFldEdn fcUnused4 lcbUnused4 fcDggInfo lcbDggInfo fcSttbfRMark lcbSttbfRMark fcSttbfCaption lcbSttbfCaption fcSttbfAutoCaption lcbSttbfAutoCaption fcPlcWkb lcbPlcWkb fcPlcfSpl lcbPlcfSpl fcPlcftxbxTxt lcbPlcftxbxTxt fcPlcfFldTxbx lcbPlcfFldTxbx fcPlcfHdrtxbxTxt lcbPlcfHdrtxbxTxt fcPlcffldHdrTxdx lcbPlcffldHdrTxdx fcStwUser lcbStwUser fcSttbTtmbd lcbSttbTtmbd fcCookieData lcbCookieData fcPgdMotherOldOld lcbPgdMotherOldOld fcBkdMotherOldOld lcbBkdMotherOldOld fcPgdFtnOldOld lcbPgdFtnOldOld fcBkdFtnOldOld lcbBkdFtnOldOld fcPgdEdnOldOld lcbPgdEdnOldOld fcBkdEdnOldOld lcbBkdEdnOldOld fcSttbfIntlFld lcbSttbfIntlFld fcRouteSlip lcbRouteSlip fcSttbSavedBy lcbSttbSavedBy fcSttbFnm lcbSttbFnm fcPlfLst lcbPlfLst fcPlfLfo lcbPlfLfo fcPlcTxbxBkd lcbPlcTxbxBkd fcPlcfTxbxHdrBkd lcbPlcfTxbxHdrBkd fcDocUndoWord9 lcbDocUndoWord9 fcRgbUse lcbRgbUse fcUsp lcbUsp fcUskf lcbUskf fcPlcupcRgbUse lcbPlcupcRgbUse fcPlcupcUsp lcbPlcupcUsp fcSttbGlsyStyle lcbSttbGlsyStyle fcPlgosl lcbPlgosl fcPlcocx lcbPlcocx fcPlcfBteLvc lcbPlcfBteLvc dwLowDateTime dwHighDateTime fcPlcfLvcPe10 lcbPlcfLvcPe10 fcPlcfAsumy lcbPlcfAsumy fcPlcfGram lcbPlcfGram fcSttbListNames lcbSttbListNames fcSttbfUssr lcbSttbfUssr')
-
 
 SIZE_OF_FIBFCLCB_2000 = 0x78      # 120Bytes
 RULE_FIBFCLCB_PATTERN_2000 = '=30L'
 RULE_FIBFCLCB_NAME_2000 = ('fcPlcfTch lcbPlcfTch fcRmdThreading lcbRmdThreading fcMid lcbMid fcSttbRgtplc lcbSttbRgtplc fcMsoEnvelope lcbMsoEnvelope fcPlcfLad lcbPlcfLad fcRgDofr lcbRgDofr fcPlcosl lcbPlcosl fcPlcfCookieOld lcbPlcfCookieOld fcPgdMotherOld lcbPgdMotherOld fcBkdMotherOld lcbBkdMotherOld fcPgdFtnOld lcbPgdFtnOld fcBkdFtnOld lcbBkdFtnOld fcPgdEdnOld lcbPgdEdnOld fcBkdEdnOld lcbBkdEdnOld')
 
-
 SIZE_OF_FIBFCLCB_2002 = 0xE0      # 224Bytes
 RULE_FIBFCLCB_PATTERN_2002 = '=56L'
 RULE_FIBFCLCB_NAME_2002 = ('fcUnused1 lcbUnused1 fcPlcfPgp lcbPlcfPgp fcPlcfuim lcbPlcfuim fcPlfguidUim lcbPlfguidUim fcAtrdExtra lcbAtrdExtra fcPlrsid lcbPlrsid fcSttbfBkmkFactoid lcbSttbfBkmkFactoid fcPlcfBkfFactoid lcbPlcfBkfFactoid fcPlcfcookie lcbPlcfcookie fcPlcfBklFactoid lcbPlcfBklFactoid fcFactoidData lcbFactoidData fcDocUndo lcbDocUndo fcSttbfBkmkFcc lcbSttbfBkmkFcc fcPlcfBkfFcc lcbPlcfBkfFcc fcPlcfBklFcc lcbPlcfBklFcc fcSttbfbkmkBPRepairs lcbSttbfbkmkBPRepairs fcPlcfbkfBPRepairs lcbPlcfbkfBPRepairs fcPlcfbklBPRepairs lcbPlcfbklBPRepairs fcPmsNew lcbPmsNew fcODSO lcbODSO fcPlcfpmiOldXP lcbPlcfpmiOldXP fcPlcfpmiNewXP lcbPlcfpmiNewXP fcPlcfpmiMixedXP lcbPlcfpmiMixedXP fcUnused2 lcbUnused2 fcPlcffactoid lcbPlcffactoid fcPlcflvcOldXP lcbPlcflvcOldXP fcPlcflvcNewXP lcbPlcflvcNewXP fcPlcflvcMixedXP lcbPlcflvcMixedXP')
-
 
 SIZE_OF_FIBFCLCB_2003 = 0xE0      # 224Bytes
 RULE_FIBFCLCB_PATTERN_2003 = '=56L'
 RULE_FIBFCLCB_NAME_2003 = ('fcHplxsdr lcbHplxsdr fcSttbfBkmkSdt lcbSttbfBkmkSdt fcPlcfBkfSdt lcbPlcfBkfSdt fcPlcfBklSdt lcbPlcfBklSdt fcCustomXForm lcbCustomXForm fcSttbfBkmkProt lcbSttbfBkmkProt fcPlcfBkfProt lcbPlcfBkfProt fcPlcfBklProt lcbPlcfBklProt fcSttbProtUser lcbSttbProtUser fcUnused lcbUnused fcPlcfpmiOld lcbPlcfpmiOld fcPlcfpmiOldInline lcbPlcfpmiOldInline fcPlcfpmiNew lcbPlcfpmiNew fcPlcfpmiNewInline lcbPlcfpmiNewInline fcPlcflvcOld lcbPlcflvcOld fcPlcflvcOldInline lcbPlcflvcOldInline fcPlcflvcNew lcbPlcflvcNew fcPlcflcxNewInline lcbPlcflcxNewInline fcPgdMother lcbPgdMother fcBkdMother lcbBkdMother fcAfdMother lcbAfdMother fcPgdFtn lcbPgdFtn fcBkdFtn lcbBkdFtn fcAfdFtn lcbAfdFtn fcPgdEdn lcbPgdEdn fcBkdEdn lcbBkdEdn fcAfdEdn lcbAfdEdn fcAfd lcbAfd')
 
-
 SIZE_OF_FIBFCLCB_2007 = 0x98      # 152Bytes
 RULE_FIBFCLCB_PATTERN_2007 = '=38L'
 RULE_FIBFCLCB_NAME_2007 = ('fcPlcfmthd lcbPlcfmthd fcSttbfBkmkMoveFrom lcbSttbfBkmkMoveFrom fcPlcfBkfMoveFrom lcbPlcfBkfMoveFrom fcPlcfBklMoveFrom lcbPlcfBklMoveFrom fcSttbfBkmkMoveTo lcbSttbfBkmkMoveTo fcPlcfBkfMoveTo lcbPlcfBkfMoveTo fcPlcfBklMoveTo lcbPlcfBklMoveTo fcUnused1 lcbUnused1 fcUnused2 lcbUnused2 fcUnused3 lcbUnused3 fcSttbfBkmkArto lcbSttbfBkmkArto fcPlcfBkfArto lcbPlcfBkfArto fcPlcfBklArto lcbPlcfBklArto fcArtoData lcbArtoData fcUnused4 lcbUnused4 fcUnused5 lcbUnused5 fcUnused6 lcbUnused6 fcOssTheme lcbOssTheme fcColorSchemeMapping lcbColorSchemeMapping')
 
-
-
-# OLE-Office : Sub-Structure
-RULE_PNFKPCHPX_PATTERN = '22,10'
-RULE_PNFKPCHPX_NAME = ('Pn Unused') 
-
+RULE_PNFKP_PATTERN = '22,10'
+RULE_PNFKP_NAME = ('Pn Unused') 
 
 RULE_SPRM_PATTERN = '9,1,3,3'
 RULE_SPRM_NAME = ('ispmd A sgc spra')
+
+SIZE_OF_STSHIF = 0x12           # 18Bytes
+RULE_STSHIF_PATTERN = '=9H'
+RULE_STSHIF_NAME = ('cstd cbSTDBaseInFile AfReserved stiMaxWhenSaved istdMaxFixedWhenSaved nVerBuiltInNamesWhenSaved ftcAsci ftcFE ftcOther')
+
+RULE_LSD_PATTERN = '1,1,1,1,12,16'
+RULE_LSD_NAME = ('fLocked fSemiHidden fUnhideWhenUsed fQFormat iPriority fReserved')
+
+SIZE_OF_STDFBASE = 0xA          # 10Bytes
+
+RULE_STDFBASE_PATTERN_01 = '12,1,1,1,1'
+RULE_STDFBASE_NAME_01 = ('sti fScratch fInvalHeight fHasUpe fMassCopy')
+
+RULE_STDFBASE_PATTERN_02 = '4,12'
+RULE_STDFBASE_NAME_02 = ('stk istdBase')
+
+RULE_STDFBASE_PATTERN_03 = '4,12'
+RULE_STDFBASE_NAME_03 = ('cupx istdNext')
+
+RULE_STDFBASE_NAME = ["sti", "fScratch", "fInvalHeight", "fHasUpe", "fMassCopy", "stk", "istdBase", "cupx", "istdNext", "bchUpe", "grfstd"]
+
+SIZE_OF_STDFPOST2KORNONE = 0x8  #  8Bytes
+
+RULE_STDFPOST2K_PATTERN_01 = '12,1,3'
+RULE_STDFPOST2K_NAME_01 = ('istdLink fHasOriginalStyle fSpare')
+
+RULE_STDFPOST2K_PATTERN_02 = '3,1,12'
+RULE_STDFPOST2K_NAME_02 = ('iftcHtml unused iPriority')
+
+RULE_STDFPOST2K_NAME = ["istdLink", "fHasOriginalStyle", "fSpare", "rsid", "iftcHtml", "unused", "iPriority" ]
+
+RULE_SED_PATTERN = '=HIHI'
+RULE_SED_NAME = ('fn fcSepx fnMpr fcMpr')
+
+RULE_PBSTRING_PATTERN = '15,1'
+RULE_PBSTRING_NAME = ('cch fAnsiString')
+
+RULE_PROPHDR1_PATTERN = '=2H2I'
+RULE_PROPHDR1_NAME = ('cbHdr sVer cFactoid cste')
+
+RULE_PROPHDR2_PATTERN = '=3H'
+RULE_PROPHDR2_NAME = ('id cProp cbUnknown')
+
+RULE_PROPBAG_PAIR_PATTER = '=2I'
+RULE_PROPBAG_PAIR_NAME = ('keyIndex valueIndex')
+
+SIZE_OF_FBKFD = 0x6
+RULE_FBKFD_PATTERN = '=IH'
+RULE_FBKFD_NAME = ('fbkf cDepth')
+
+RULE_BKC_PATTERN = '7,1,6,1,1'
+RULE_BKC_NAME = ('itcFirst fPub itcLim fNative fCol')
+
+SIZE_OF_FBKLD = 0x4
+RULE_FBKLD_PATTERN = '=2H'
+RULE_FBKLD_NAME = ('ibkf cDepth')
+
+SIZE_OF_STTBHDR = 0x8
+SIZE_OF_FACTOIDINFO = 0xE
+
+RULE_SUBENTITY_PATTERN = '1,15'
+RULE_SUBENTITY_NAME = ('fSubEntity Unused')
+
+CMDS_ID_FUNC = {0x01:"PlfMcd", 0x02:"PlfAcd", 0x03:"PlfKme", 0x04:"PlfKme", 0x10:"TcgSttbf", 0x11:"MacroNames", 0x12:"CTBWRAPPER"}
 
 
 # OLE-Office : Single Property Modifier
@@ -189,9 +262,21 @@ PICT_PROPERTY_MODIFIER_NAME = ["sprmPicBrcTop80", "sprmPicBrcLeft80", "sprmPicBr
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 # PDF
 # Extract Object 
-REGULAR_EXPRESSION_OBJECT = ["obj\s{0,10}<<(.{0,100}?/Length\s([0-9]{1,8}).*?)>>[\s%]*?stream(.*?)endstream[^=]", "obj\s{0,10}<<(.{0,100}.*?)>>[\s%]*?stream(.*?)endstream[^=]"]
+#REGULAR_EXPRESSION_OBJECT = ["obj\s{0,10}<<(.{0,100}?/Length\s([0-9]{1,8}).*?)>>[\s%]*?stream(.*?)endstream[^=]", "obj\s{0,10}<<(.{0,100}.*?)>>[\s%]*?stream(.*?)endstream[^=]"]
+REGULAR_EXPRESSION_OBJECT = ["obj\s{0,10}<<(.{0,100}.*?)>>[\s%]*?stream(.*?)endstream[^=]"]
 REGULAR_EXPRESSION_ESCAPE = "(\w*?)\s*?=\s*?(unescape\((.*?)\))"
 
 # Condition JavaScript
@@ -212,15 +297,52 @@ g_SuspiciousJS = ['mailto',
                   'spell.customDictionaryOpen', 
                   'media.newPlayer']
 
-g_CVENo = ["CVE-2007-5020", 
+g_CVENo = [# 2007
+           "CVE-2007-5020", 
            "CVE-2007-5659", 
-           "CVE-2008-2992", 
+           # 2008
+           "CVE-2008-2992",
+           # 2009 
            "CVE-2009-0927", 
            "CVE-2009-1492", 
            "CVE-2009-1493", 
-           "CVE-2009-4324"]
+           "CVE-2009-4324",
+           # 2010
+           
+           # 2011
+           
+           # 2012
+           
+           # 2013
+           "CVE-2013-0603",
+           "CVE-2013-0604",
+           "CVE-2013-0609",
+           "CVE-2013-0613",
+           ""]
 
-
+            
+g_Link = [# 2007 
+          "Not yet",    # CVE-2007-5020
+          "Not yet",    # CVE-2007-5659
+          # 2008
+          "Not yet",    # CVE-2008-2992
+          # 2009
+          "Not yet",    # CVE-2009-0927
+          "Not yet",    # CVE-2009-1492
+          "Not yet",    # CVE-2009-1493
+          "http://isc.sans.edu/diary/Sophisticated%2C+targeted+malicious+PDF+documents+exploiting+CVE-2009-4324/7867",  # CVE-2009-4324
+          # 2010
+          
+          # 2011
+          
+          # 2012
+          
+          # 2013
+          "Not yet",    # CVE-2013-0603
+          "Not yet",    # CVE-2013-0604
+          "Not yet",    # CVE-2013-0609
+          "Not yet",    # CVE-2013-0613
+          ""]
 
 
 

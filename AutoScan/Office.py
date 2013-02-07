@@ -5,7 +5,9 @@ from collections import namedtuple
 
 from Definition import *
 from Common import CBuffer, CFile
-from OLE_Stream import CMappedStream
+from OfficeDoc import CStreamDOC
+#from OfficeXls import CStreamXLS
+#from OfficePpt import CStreamPPT
 
 
 class COffice():
@@ -17,7 +19,7 @@ class COffice():
     @classmethod
     def fnScan(cls, s_fname, s_pBuf, t_SATList, t_SSATList, dl_OLEDirectory):
         
-        print "\t\t[+] COffice.Scan( )"
+#        print "\t\t[+] COffice.Scan( )"
         
         try :
 
@@ -32,10 +34,15 @@ class COffice():
             
             CFile.fnWriteFile("c:\\test1\\%s_WordDocument.dump" % s_fname, s_WordDoc)
             
-#            n_Cnt = 0
-#            while n_Cnt < dl_OLEDirectory.__len__() :
-#                print CBuffer.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0])
-#                n_Cnt += 1
+#            PrintOffice = CPrintOffice()
+#            PrintOffice.fnPrintDirectory(dl_OLEDirectory)
+
+
+# Extra Step. Make Start Offset List from Document Begin Offset for Vulnerability by StreamName             
+            l_StartOffset = StructOffice.fnStructOfficeStartSector(s_pBuf, s_WordDoc, dl_OLEDirectory)
+            if l_StartOffset == None :
+                print"\t" * 3 + "[-] Warning - StructOfficeStartSector()"
+                
 
 # Step 2. Mapped WordDocument
             t_FibBase, l_FibRgFcLcbBlob = StructOffice.fnStructOfficeWordDocument(s_WordDoc)
@@ -43,7 +50,7 @@ class COffice():
                 print "\t\t\t[-] Failure - MappedOfficeWordDocument()"
                 return False
 
-#            print "\t\t\t[*] File Version : Office%s" % g_Version[ l_FibRgFcLcbBlob.__len__() - 1 ]
+            print "\t" * 2 + "[*] File Version : Office%s" % g_Version[ l_FibRgFcLcbBlob.__len__() - 1 ]
 
 
 # Step 3. Check Encryption & Obfuscation
@@ -66,21 +73,20 @@ class COffice():
                 s_StreamName = "1Table"
             else :
                 s_StreamName = "0Table"
-                
-            s_TableStream = StructOffice.fnStructOfficeSector(s_pBuf, None, dl_OLEDirectory, t_SATList, t_SSATList, s_StreamName)
+            
+            s_TableStream = StructOffice.fnStructOfficeSector(s_pBuf, s_WordDoc, dl_OLEDirectory, t_SATList, t_SSATList, s_StreamName)
             if s_TableStream == None :
                 print "\t\t\t[-] Failure - StructOfficeSector( %s )" % s_StreamName
                 return False
-                      
-
+            
+            CFile.fnWriteFile("c:\\test1\\%s_%s.dump" % (s_fname, s_StreamName), s_TableStream)
+            
 # Step 5. Mapped Streams ( WordDocument, Table Stream, Data Stream, FibRgFcLcbBlob List )
             # it is 'Possible' that s_DataStream was None
             s_DataStream = StructOffice.fnStructOfficeSector(s_pBuf, None, dl_OLEDirectory, t_SATList, t_SSATList, "Data")
-            
-#            CFile.fnWriteFile("c:\\test1\\%s_Data.dump" % s_fname, s_DataStream)
 
             StructStream = CStructStream()
-            if not StructStream.fnStructOfficeStream(s_fname, s_WordDoc, s_TableStream, s_DataStream, l_FibRgFcLcbBlob) :
+            if not StructStream.fnStructOfficeStream(s_fname, s_pBuf, s_WordDoc, l_StartOffset, s_TableStream, s_DataStream, l_FibRgFcLcbBlob) :
                 print "\t\t\t[-] Failure - StructOfficeStream()"
                 return False
                     
@@ -89,7 +95,6 @@ class COffice():
             return False
 
         return True
-        
         
         
 class CStructOffice():
@@ -125,7 +130,7 @@ class CStructOffice():
                 t_Table = t_SATList
                 n_Size = SIZE_OF_SECTOR
             elif n_EntryType != 5 and n_EntrySize < 0x1000 :
-                if s_pBuff == None :
+                if s_pBuff == None or s_pBuff == "" :
                     print "\t\t\t[-] Error - StructOfficeSector()'s Parameter ( Entry Name : %s, Type : 0x%08X )" % (s_Entry, n_EntryType)
                     return None
                 
@@ -164,10 +169,14 @@ class CStructOffice():
                 return None, None
             
             # Check Signature
-            if t_FibBase.wIdent != 0xA5EC :
+            if t_FibBase.wIdent not in g_FIBMagicNumber :
                 print "\t\t\t[-] Error - FibBase's Signature( 0x%08X )" % t_FibBase.wIdent
                 return None, None
-                    
+
+            for n_MagicNumber in range( g_FIBMagicNumber.__len__() ) :
+                if t_FibBase.wIdent == g_FIBMagicNumber[n_MagicNumber] :            
+                    print "\t" * 2 + "[*] Version By Fib MagicNumber : %s" % g_VersionByFIBMagicNumber[n_MagicNumber]
+            
             n_Position += SIZE_OF_FIBBASE
             
             
@@ -175,12 +184,12 @@ class CStructOffice():
             # Get Size FibRg97 ( Position : 0x0020, Size : 0x0002 )
             n_CSW = CBuffer.fnReadWord(s_WordDoc, n_Position)
             if n_CSW != 0x000E :
-                print "\t\t\t[-] Error ( Position : 0x%08X, CSW : 0x%04X )" % (n_Position, n_CSW)
+                print "\t" * 3 + "[-] Error ( Position : 0x%08X, CSW : 0x%04X )" % (n_Position, n_CSW)
                 return None, None
             
             n_Position += 2
             
-            # Mapped FibRgW97 ( Position : 0x0022, Size : 0x001C )
+            # Mapped FibRgW97 ( Position : 0x0022, Size : 0x001C, Complex : 0x02 )
             n_szCSW = n_CSW * 2            
             t_FibW97 = MappedOffice.fnMappedFibRgW97(s_WordDoc[n_Position:n_Position + n_szCSW])
             if t_FibW97 == None :
@@ -199,7 +208,7 @@ class CStructOffice():
             
             n_Position += 2
             
-            # Mapped FibRglW97 ( Position : 0x0040, Size : 0x0058 )
+            # Mapped FibRglW97 ( Position : 0x0040, Size : 0x0058, Complex : 0x04 )
             n_szCSLW = n_CSLW * 4
             t_FibLw97 = MappedOffice.fnMappedFibRgLw97(s_WordDoc[n_Position:n_Position + n_szCSLW])
             if t_FibLw97 == None :
@@ -221,6 +230,7 @@ class CStructOffice():
             # Delay Mapped for Pre-Reading nFib Value
             n_Position_FibRgFcLcbBlob = n_Position
             
+            # ( Complex : 0x08 )
             n_Position += n_cbRgFcLcb * 8
             
 
@@ -242,7 +252,7 @@ class CStructOffice():
                 print "\t\t\t[-] Error ( cswNew : 0x%04X, nFib : 0x%04X )" % (n_cswNew, n_Fib)
                 return None, None
             
-            n_Position_CswNewData = n_Position                
+#            n_Position_CswNewData = n_Position                
 
 
 # Step 6. Mapped FibRgFcLcbBlob
@@ -268,7 +278,8 @@ class CStructOffice():
             s_Algorithm = ""
             
             # Get Encrypted Bit
-            b_Bit_Encrypted = CBuffer.fnBitParse(n_Flag, 8, 1)
+            n_BitOffset = 8
+            b_Bit_Encrypted = CBuffer.fnBitParse(n_Flag, n_BitOffset, 1)
             if b_Bit_Encrypted == None :
                 print "\t\t\t[-] Error - BitParse( Encrypted, BitCount : 8 )"
                 return None
@@ -278,7 +289,8 @@ class CStructOffice():
                 n_Encrypted = 0
 
             # Get Obfuscated Bit
-            b_Bit_Obfuscated = CBuffer.fnBitParse(n_Flag, 15, 1)
+            n_BitOffset = 15
+            b_Bit_Obfuscated = CBuffer.fnBitParse(n_Flag, n_BitOffset, 1)
             if b_Bit_Obfuscated == None :
                 print "\t\t\t[-] Error - BitParse( Obfuscated, BitCount : 15 )"
                 return None
@@ -289,24 +301,93 @@ class CStructOffice():
                 
             # Check Algorithm
             if n_Encrypted == 0 and n_Obfuscated == 0 :
-                s_Algorithm = "None"
-            
-            if n_Encrypted == 1 and n_Obfuscated == 0 :
-                s_Algorithm = "RC4"
-            
-            if n_Encrypted == 1 and n_Obfuscated == 1 :
+                s_Algorithm = "None"            
+            elif n_Encrypted == 1 and n_Obfuscated == 0 :
+                s_Algorithm = "RC4"           
+            elif n_Encrypted == 1 and n_Obfuscated == 1 :
                 s_Algorithm = "XOR"
+            else :
+                print "\t" * 3 + "[-] Error - Algorithm Check plz ( Encrypted : %d, Obfuscated : %d )" % (n_Encrypted, n_Obfuscated)
+                return None
             
         except :
             print format_exc()
             return None
         
-        return s_Algorithm
-    
-    
-    
-    
-    
+        return s_Algorithm    
+    def fnStructOfficeStartSector(self, s_pBuf, s_pBuff, dl_OLEDirectory):
+        
+        from OLE import CStructOLE
+        
+        l_StartOffset = []
+        
+        l_Start0 = []
+        l_Start0_Name = []
+        l_Start0_Offset = []
+        
+        l_Start1 = []
+        l_Start1_Name = []
+        l_Start1_Offset = []
+        
+        l_Start2 = []
+        l_Start2_Name = []
+        l_Start2_Offset = []
+        
+        try :
+            
+            StructOLE = CStructOLE()
+            
+            n_Cnt = 0
+            while n_Cnt < dl_OLEDirectory.__len__() :
+                s_Entry = CBuffer.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0])
+                if s_Entry == "" :          n_Cnt +=1;          continue
+                
+                s_EntryName, n_Index = StructOLE.fnFindEntryName(dl_OLEDirectory, s_Entry)
+                if s_EntryName == None :
+                    print "\t\t\t[-] Failure - FindEntryName() for %s in Office" % s_Entry
+                    return None
+                n_Cnt += 1
+            
+                n_EntryType  = dl_OLEDirectory[n_Index][2]           # Entry Sector Type
+                n_EntrySecID = dl_OLEDirectory[n_Index][11]          # Entry Sector Start SecID
+                n_EntrySize  = dl_OLEDirectory[n_Index][12]          # Entry Sector Size
+                
+                if n_EntryType == 0 :
+                    l_Start0_Name.append( s_EntryName )
+                    l_Start0_Offset.append( None )
+                    
+                elif n_EntryType == 5 or n_EntrySize >= 0x1000 :
+                    l_Start1_Name.append( s_EntryName )
+                    l_Start1_Offset.append( (n_EntrySecID + 1) * SIZE_OF_SECTOR )
+                    
+                    
+                elif n_EntryType != 5 and n_EntrySize < 0x1000 :
+                    l_Start2_Name.append( s_EntryName )
+                    l_Start2_Offset.append( (n_EntrySecID + 1) * SIZE_OF_SECTOR )
+                    
+                else :
+                    print "\t\t\t[-] Error - Do Not Seperated referred Type"
+                    return None
+            
+            
+            l_Start0.append( l_Start0_Name )
+            l_Start0.append( l_Start0_Offset )
+            
+            l_Start1.append( l_Start1_Name )
+            l_Start1.append( l_Start1_Offset )
+            
+            l_Start2.append( l_Start2_Name )
+            l_Start2.append( l_Start2_Offset )
+                
+            l_StartOffset.append( l_Start0 )
+            l_StartOffset.append( l_Start1 )
+            l_StartOffset.append( l_Start2 )
+                
+        except :
+            print format_exc()
+            return None
+        
+        return l_StartOffset
 
 
 class CMappedOffice():
@@ -316,8 +397,6 @@ class CMappedOffice():
     def fnMappedFibBase(self, s_Buffer):
         
         try :
-            
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibBase.dump", s_Buffer)
             
             t_FibBase_Name = namedtuple('FibBase', RULE_FIBBASE_NAME)
             t_FibBase = t_FibBase_Name._make( unpack(RULE_FIBBASE_PATTERN, s_Buffer) )
@@ -336,8 +415,6 @@ class CMappedOffice():
     def fnMappedFibRgW97(self, s_Buffer):
         
         try :
-            
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibRgW97.dump", s_Buffer)
         
             t_FibW97_Name = namedtuple('FibW97', RULE_FIBW97_NAME)
             t_FibW97 = t_FibW97_Name._make( unpack(RULE_FIBW97_PATTERN, s_Buffer) )
@@ -356,8 +433,6 @@ class CMappedOffice():
     def fnMappedFibRgLw97(self, s_Buffer):
         
         try :
-            
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibRgLw97.dump", s_Buffer)
             
             t_FibLw97_Name = namedtuple('FibLw97', RULE_FIBLW97_NAME)
             t_FibLw97 = t_FibLw97_Name._make( unpack(RULE_FIBLW97_PATTERN, s_Buffer) )
@@ -454,8 +529,6 @@ class CMappedOffice():
         
         try : 
             
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibRgFcLcb97.dump", s_Buffer)
-            
             t_FibRgFcLcb97_Name = namedtuple('FibRgFcLcb97', RULE_FIBFCLCB_NAME_97)
             t_FibRgFcLcb97 = t_FibRgFcLcb97_Name._make( unpack(RULE_FIBFCLCB_PATTERN_97, s_Buffer))
             if t_FibRgFcLcb97 == () :
@@ -473,8 +546,6 @@ class CMappedOffice():
     def fnMappedFibRgFcLcb2000(self, s_Buffer):
         
         try : 
-            
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibRgFcLcb2000.dump", s_Buffer)
             
             t_FibRgFcLcb2000_Name = namedtuple('FibRgFcLcb2000', RULE_FIBFCLCB_NAME_2000)
             t_FibRgFcLcb2000 = t_FibRgFcLcb2000_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2000, s_Buffer))
@@ -494,8 +565,6 @@ class CMappedOffice():
         
         try : 
             
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibRgFcLcb2002.dump", s_Buffer)
-            
             t_FibRgFcLcb2002_Name = namedtuple('FibRgFcLcb2002', RULE_FIBFCLCB_NAME_2002)
             t_FibRgFcLcb2002 = t_FibRgFcLcb2002_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2002, s_Buffer))
             if t_FibRgFcLcb2002 == () :
@@ -513,8 +582,6 @@ class CMappedOffice():
     def fnMappedFibRgFcLcb2003(self, s_Buffer):
         
         try : 
-            
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibRgFcLcb2003.dump", s_Buffer)
             
             t_FibRgFcLcb2003_Name = namedtuple('FibRgFcLcb2003', RULE_FIBFCLCB_NAME_2003)
             t_FibRgFcLcb2003 = t_FibRgFcLcb2003_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2003, s_Buffer))
@@ -534,8 +601,6 @@ class CMappedOffice():
         
         try : 
             
-#            CFile.fnWriteFile("c:\\test1\\1.doc_FibRgFcLcb2007.dump", s_Buffer)
-            
             t_FibRgFcLcb2007_Name = namedtuple('FibRgFcLcb2007', RULE_FIBFCLCB_NAME_2007)
             t_FibRgFcLcb2007 = t_FibRgFcLcb2007_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2007, s_Buffer))
             if t_FibRgFcLcb2007 == () :
@@ -548,7 +613,6 @@ class CMappedOffice():
         return t_FibRgFcLcb2007
 
 
-
 class CStructStream():
 
     #    s_fname                                  [IN]                        File Full Name
@@ -557,7 +621,7 @@ class CStructStream():
     #    s_Data                                   [IN]                        Data Stream
     #    l_FibRgFcLcbBlob                         [IN]                        FibRgFcLcb List in FIB
     #    BOOL Type                                [OUT]                       True / False
-    def fnStructOfficeStream(self, s_fname, s_WordDoc, s_Table, s_Data, l_FibRgFcLcbBlob):
+    def fnStructOfficeStream(self, s_fname, s_pBuf, s_WordDoc, l_StartOffset, s_Table, s_Data, l_FibRgFcLcbBlob):
         
         try :
 
@@ -574,19 +638,11 @@ class CStructStream():
                 print "\t\t\t[-] Failure - StructStreamData( Name )"
                 return False
         
+#            PrintOffice = CPrintOffice()
+#            PrintOffice.fnPrintStructOffice(dl_StreamOffset, dl_StreamName, dl_StreamSize)
         
-#            print "\t\t\t" + "=" * 50
-#            print "\t\t\t%4s%19s\t%10s\t%7s" % ("Index", "Member", "Offset", "Size")
-#            print "\t\t\t" + "-" * 50
-#            for n_Ver in range( dl_StreamOffset.__len__() ) :
-#                print "\t\t\t[ Office%4s ]" % g_Version[ n_Ver ]
-#                for n_Cnt in range( dl_StreamOffset[n_Ver].__len__() ) :
-#                    print "\t\t\t%02X%22s\t0x%08X\t0x%08X" % (n_Cnt, dl_StreamName[n_Ver][n_Cnt], dl_StreamOffset[n_Ver][n_Cnt], dl_StreamSize[n_Ver][n_Cnt])
-#            print "\t\t\t" + "=" * 50
-        
-
 # Step 2. Parse Structure List
-            if not self.fnStructParseStream(s_fname, s_WordDoc, s_Table, dl_StreamName, dl_StreamOffset, dl_StreamSize) :
+            if not self.fnStructParseStream(s_fname, s_pBuf, s_WordDoc, l_StartOffset, s_Table, dl_StreamName, dl_StreamOffset, dl_StreamSize) :
                 print "\t\t\t[-] Failure - StructParseStream()"
                 return False
         
@@ -667,16 +723,18 @@ class CStructStream():
     #    dl_Offset                                        [IN]                        Member Offset in Table Stream
     #    dl_Size                                          [IN]                        Member Size in Table Stream
     #    BOOL Type                                        [OUT]                       True / False
-    def fnStructParseStream(self, s_fname, s_WordDoc, s_Table, dl_Name, dl_Offset, dl_Size):
+    def fnStructParseStream(self, s_fname, s_pBuf, s_WordDoc, l_StartOffset, s_Table, dl_Name, dl_Offset, dl_Size):
         
         try :
             
-            MappedStream = CMappedStream()
+            Stream = CStreamDOC()
             
             for n_Ver in range( dl_Name.__len__() ) :
                 for s_Name in dl_Name[ n_Ver ] :
                     if s_Name in g_StructList :
-                        eval("MappedStream.fnMapped" + s_Name)( s_fname, s_WordDoc, s_Table, dl_Offset[ n_Ver ][ dl_Name[ n_Ver ].index( s_Name ) ], dl_Size[ n_Ver ][ dl_Name[ n_Ver ].index( s_Name )] )           
+                        if not eval("Stream.fn" + s_Name)( s_fname, s_pBuf, s_WordDoc, l_StartOffset, s_Table, dl_Offset[ n_Ver ][ dl_Name[ n_Ver ].index( s_Name ) ], dl_Size[ n_Ver ][ dl_Name[ n_Ver ].index( s_Name )] ) :
+                            print "\t" * 3 + "[-] Failure - Stream.%s()" % s_Name
+                            return False
             
         except :
             print format_exc()
@@ -684,5 +742,61 @@ class CStructStream():
 
         return True
         
+
+
+class CPrintOffice():
+    
+    def fnPrintDirectory(self, dl_OLEDirectory):
+        
+        try :
+            
+            print "\t" + "=" * 130
+            print "\t" + "%-33s%-11s%-11s%-11s%-11s%-11s%-11s%-11s%-11s%-10s" % ("DirectoryName", "szName", "Type", "Color", "Left", "Right", "Root", "Flags", "SecID", "szStream")
+            print "\t" + "-" * 130
+            n_Cnt = 0
+            while n_Cnt < dl_OLEDirectory.__len__() :
+                if CBuffer.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0]) == "" :
+                    n_Cnt +=1
+                    continue
+                
+                for n_Index in range( dl_OLEDirectory[n_Cnt].__len__() ) :
+                    if n_Index == 0 :
+                        print "\t" + "%-30s" % CBuffer.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0]),
+                    elif n_Index == 7 or n_Index == 9 or n_Index == 10 or n_Index == 13:
+                        continue
+                    else :
+                        print "0x%08X" % dl_OLEDirectory[n_Cnt][n_Index],
+                
+                print ""
+                n_Cnt += 1
+            
+            print "\t" + "=" * 130 + "\n"
+            
+        except :
+            print format_exc()
+            return False
+        
+        return True
+
+    def fnPrintStructOffice(self, dl_StreamOffset, dl_StreamName, dl_StreamSize):
+        
+        try :
+            
+            print "\n\t\t\t" + "=" * 50
+            print "\t\t\t%4s%19s\t%10s\t%7s" % ("Index", "Member", "Offset", "Size")
+            print "\t\t\t" + "-" * 50
+            for n_Ver in range( dl_StreamOffset.__len__() ) :
+                print "\t\t\t[ Office%4s ]" % g_Version[ n_Ver ]
+                for n_Cnt in range( dl_StreamOffset[n_Ver].__len__() ) :
+                    print "\t\t\t%02X%22s\t0x%08X\t0x%08X" % (n_Cnt, dl_StreamName[n_Ver][n_Cnt], dl_StreamOffset[n_Ver][n_Cnt], dl_StreamSize[n_Ver][n_Cnt])
+            print "\t\t\t" + "=" * 50 + "\n"
+
+        except :
+            print format_exc()
+            return False
+        
+        return True
+
+
 
 

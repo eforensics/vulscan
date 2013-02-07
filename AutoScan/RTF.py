@@ -4,13 +4,13 @@
 from traceback import format_exc
 
 
-class CPE():
+class CRTF():
     @classmethod
     def fnCheck(cls, s_Buffer):
         try :
-            PESig = s_Buffer[0:2]
-            if PESig == "MZ" or PESig == "mz" :
-                return "PE" 
+            RTFSig = s_Buffer[0:6]
+            if RTFSig == "{\rtf1" or RTFSig.find( "rt" ) != -1 :
+                return "RTF" 
             else :
                 return None
             
@@ -22,13 +22,12 @@ class CPE():
     @classmethod
     def fnScan(cls, s_fname, s_pBuf, s_Format):
         
-        print "\t[+] Scan PE - %s" % s_fname
+        print "\t[+] Scan RTF - %s" % s_fname
         
         try :
             
             return True
-        
+            
         except :
             print format_exc()
             return None
-            

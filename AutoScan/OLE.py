@@ -62,11 +62,11 @@ class COLE():
             # Check Count
             n_SATCnt = 0
             for n_SATIndex in t_MSATList :
-                if n_SATIndex > 0 :
+                if n_SATIndex >= 0 :
                     n_SATCnt += 1
             
             if n_SATCnt != t_OLEHeader.NumSAT :
-                print "\t\t[-] Error - SAT Count( Index Count : 0x%08X, NumSAT : 0x%08X )" % (n_SATCnt, t_OLEHeader.NumSAT) 
+                print "\t\t[-] Error - SAT Count( Checked Count : 0x%08X, NumSAT : 0x%08X )" % (n_SATCnt, t_OLEHeader.NumSAT) 
                         
             
 # Step 3. Extract OLE SAT List 
@@ -99,7 +99,9 @@ class COLE():
                 print "\t\t[-] Failure - StructOLESSAT( %s )" % s_fname
                 return False
             
-            eval( "C"+s_Format ).fnScan(s_fname, s_pBuf, t_SATList, t_SSATList, dl_OLEDirectory)
+            if not eval( "C"+s_Format ).fnScan(s_fname, s_pBuf, t_SATList, t_SSATList, dl_OLEDirectory) :
+                print "\t" * 2 + "[-] Failure - Scan%s" % s_Format
+                return False
         
         except :
             print format_exc()
@@ -214,13 +216,14 @@ class CStructOLE():
 
 
     #    s_pBuf                                [IN]                File Full Buffer
-    #    t_Table                               [IN]                Table List
+    #    t_Table                               [IN]                Table List ( SAT / SSAT )
     #    n_SecID                               [IN]                Sector ID
     #    n_Size                                [IN]                Dump Size per Sector or SSector
     #    s_Sector                              [OUT]               Sector Data By n_SecID
     def fnStructOLESector(self, s_pBuf, t_Table, n_SecID, n_Size):
 
         s_Sector = ""
+        s_tmpSector = ""
         
         try :
             
@@ -229,9 +232,24 @@ class CStructOLE():
             elif n_Size == SIZE_OF_SHORT_SECTOR :
                 AddSector = 0
             
-            while True :        
+            while True :    
+                s_tmpSector = ""
                 n_SecPos = (n_SecID + AddSector) * n_Size
-                s_Sector += s_pBuf[n_SecPos:n_SecPos+n_Size]
+                s_tmpSector = s_pBuf[n_SecPos:n_SecPos+n_Size]
+                
+                # Print Exception
+                if s_tmpSector == "" :
+                    # Out of Range
+                    if n_SecPos >= s_pBuf.__len__() or n_SecPos + n_Size >= s_pBuf.__len__() :
+                        print "\t" * 3 + "[-] Out of Range - StructOLESector()"
+                        print "\t" * 4 + "- Buffer Size : 0x%08X, SecID : 0x%04X, Complex Value : 0x%04X, Position : 0x%08X" % (s_pBuf.__len__(), n_SecID, n_Size, n_SecPos)
+                        return None
+                    # Another
+                    else : 
+                        print "\t" * 3 + "[-] ERROR - StructOLESector( SecID : 0x%04X, Position : 0x%08X)" % (n_SecID, n_SecPos)
+                        return None
+                
+                s_Sector += s_tmpSector
                 n_SecID = t_Table[ n_SecID ]
                 if n_SecID <= 0 :
                     break               
@@ -328,16 +346,5 @@ class CMappedOLE():
             return None
         
         return t_OLEDirectory
-
-
-
-
-
-
-
-
-
-
-
 
 
