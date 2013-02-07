@@ -124,19 +124,19 @@ class CAction():
                 return False
             
             # Create Object : "FTP" & "Server" 
-            FTP = FTP()
+            ftp = FTP()
             FTPServer = CFTPServer()
             
             # Connection FTP Server
-            if not FTPServer.fnConnectServer(FTP, IP, ID, PW) :
+            if not FTPServer.fnConnectServer(ftp, IP, ID, PW) :
                 return False
             
             # Download Files From FTP Server
-            if not FTPServer.fnDownload(FTP, Src, Dst) :
+            if not FTPServer.fnDownload(ftp, Src, Dst) :
                 return False
             
             # Connection Termination
-            FTP.close()
+            ftp.close()
         
             return True
             
