@@ -405,40 +405,7 @@ class OLEScan():
             print traceback.format_exc()
             
             
-    @classmethod
-    def Scan(cls, File):
-        try :
-            File['logbuf'] += "\n    [+] %s...........%s" % ( File["fname"], File["format"] )
-            
-            OLE = OLEStruct( File )
-            
-            if not OLE.OLEHeader(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLEHeader( %s )" % File["fname"]
-                return False
-    
-            
-            if not OLE.OLETableSAT(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLETableSAT( %s )" % File["fname"]
-                return False
-    
-            if not OLE.OLETableSSAT(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLETableSSAT( %s )" % File["fname"]
-    
-            
-            if not OLE.OLEDirectory(File) :
-                File['logbuf'] += "\n    [Failure] OLE.OLEDirectory( %s )" % File["fname"]
-                return False
 
-            DocScan = {"HWP":HWP.HWPScan, "Office":Office.OfficeScan}
-            for field in DocScan :
-                if File["format"] == field :
-                    DocScan[ field ]( File ) 
-            
-        except :
-            print traceback.format_exc()
-            return False
-        
-        return True
     
 
 

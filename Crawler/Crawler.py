@@ -9,6 +9,7 @@ from ComFunc import FileControl
 from OLEScanner import OLEScan, OLEStruct
 from PDFScanner import PDFScan
 from PEScanner import PEScan
+from RTFScanner import RTFScan
 
 
 class Initialize():
@@ -43,7 +44,7 @@ class Main():
             pBuf = FileControl.ReadFileByBinary(fname)
             File["pBuf"] = pBuf
             
-            ClsList = [PDFScan, OLEScan, PEScan]
+            ClsList = [PDFScan, OLEScan, PEScan, RTFScan]
             
             Format = ""
             for Cls in ClsList :
@@ -307,6 +308,7 @@ if __name__ == '__main__' :
         PDFList = []
         OLEList = []
         PEList = []
+        RTFList = []
         NoneSupport = []
         
 #        os.chdir( DstDir )
@@ -326,10 +328,12 @@ if __name__ == '__main__' :
                 OLEList.append( fname )
             elif Format == "PE" :
                 PEList.append( fname )
+            elif Format == "RTF" :
+                RTFList.append( fname )
             else :
                 NoneSupport.append( fname )
         
-        if PDFList == [] and OLEList == [] :
+        if PDFList == [] and OLEList == [] and RTFList == [] :
             log += "None\n"
         else :
             log += "Done\n"
@@ -346,6 +350,9 @@ if __name__ == '__main__' :
             
         if PEList != [] :
             main.Separation(DstDir, PEList, "PE", ExceptList, log)
+            
+        if RTFList != [] :
+            main.Separation(DstDir, PEList, "RTF", ExceptList, log)
         
         if NoneSupport != [] :
             main.Separation(DstDir, NoneSupport, "unknown", ExceptList, log) 
@@ -357,6 +364,7 @@ if __name__ == '__main__' :
             + "  PDF Files       : %d\n" % len(PDFList) \
             + "  OLE Files       : %d\n" % len(OLEList) \
             + "  PE Files        : %d\n" % len(PEList) \
+            + "  RTF Files       : %d\n" % len(RTFList) \
             + "  None Files      : %d\n" % len(NoneSupport) \
             + "\n  File Count      : %d\n" % (len(flist) - DirCnt) \
             + "  Directory Count : %d\n" % DirCnt \
@@ -364,8 +372,7 @@ if __name__ == '__main__' :
             + "-" * 70 + "\n"
         
         if len(ExceptList) :
-            log += "  Except Files : %d\n" % (len(ExceptList)/2) \
-                + "\n  [ File Name ]\t\t\t\t[ Description ]\n"
+            log += "  Except Files : %d\n" % (len(ExceptList)/2)
             
             index = 0
             while index < len(ExceptList) :
@@ -376,21 +383,8 @@ if __name__ == '__main__' :
         print traceback.format_exc() 
     
     finally:
-#        if isinstance( FTP, types.InstanceType ) :
-#            Server.CloseServer(FTP, log)
-            
-        print log
+        
+        FileControl.WriteFile("%s\\%s.log" % (DstDir, os.path.split(DstDir)[1]), log)
     
     exit(0)
-
-
-
-
-
-
-
-
-
-
-
 
