@@ -1,6 +1,6 @@
 
 
-import re
+import re, os
 from traceback import format_exc
 
 
@@ -68,7 +68,7 @@ class CPDF():
                 print "\t" * 2 + "[*] Maybe New Type ( Do not found Object Streams )"
                 return True
 
-
+            
 # Step 2. Extract Data ( JavaScript Element )
             MappedPDF = CMappedPDF()
             #    dl_JSElement[x][y]
@@ -86,6 +86,9 @@ class CPDF():
                 print "\t" * 2 + "[-] Failure - ExtractJSElement()"
                 return False
             
+            print dl_JSElement
+            return False
+
 
 # Step 3. Comparing Suspicious String List
             ExploitPDF = CExploitPDF()
@@ -137,7 +140,7 @@ class CPDF():
         #            y - Suspicious List for CVENo
         try :
             
-            print "\n" + "\t" * 2 + "=" * 72
+            print "\n" + "\t" * 2 + "=" * 120
             for n_Index in range( g_SuspiciousList.__len__() ) :
                 if dl_Suspicious[n_Index] == [] or dl_Suspicious[n_Index] == 0 :
                     continue
@@ -157,8 +160,9 @@ class CPDF():
                 else :  
                     for n_CVENo in dl_Suspicious[n_Index] :
                         print "\t" * 2 + "[*] %-16s : %-30s ( %s )" % (g_SuspiciousList[n_Index], g_SuspiciousJS[ n_CVENo ], g_CVENo[ n_CVENo ])
+                        print "\t" * 3 + "<< Info >> %s" % g_Link[n_CVENo]
                         
-            print "\t" * 2 + "=" * 72
+            print "\t" * 2 + "=" * 120
             
         except :
             print format_exc()
@@ -245,18 +249,40 @@ class CMappedPDF():
     def fnExtractJS(self, s_fname, dl_Object, s_Cmp):
         
         try :
-            
+            #    dl_Object[y][z]
+            #        y - Object List No
+            #            0 : First Object
+            #            1 : Second Object
+            #            .....
+            #            n : Nnd Object
+            #
+            #        z - Object 
+            #            x == 0
+            #                0 : Header
+            #                1 : Length
+            #                2 : Body
+            #            x == 1
+            #                0 : Header
+            #                1 : Body
             l_ExtractJS = []
             
             for n_Index in range( dl_Object.__len__() ) :
                 l_Object = dl_Object[n_Index]
+                n_BodyIndex = l_Object.__len__() -1
+                
+# Case 1. /JS, /JavaScript & Need to Decompress                
+                
                 if l_Object[0].find( s_Cmp ) == -1 :
                     continue
                 
-                n_BodyIndex = l_Object.__len__() -1
-                
                 #    Case 1. /JS
                 if s_Cmp == "/JS" :
+                    
+                    print "<<<<<" + str(n_Index) + ">>>>>>"
+                    print l_Object[0][0]
+                    print "\n\n\n\n"
+                    print l_Object[1]
+                    
                     s_DecompObject = l_Object[ n_BodyIndex ]
                     s_DecompObject = s_DecompObject.replace('\(','(')
                     s_DecompObject = s_DecompObject.replace('\)',')')
@@ -264,22 +290,32 @@ class CMappedPDF():
                     s_DecompObject = s_DecompObject.replace('\r',' ')
                     s_DecompObject = s_DecompObject.replace('\t',' ')
                     s_DecompObject = s_DecompObject.replace('\\\\','\\')
-                
-                
+                    
+                    return None
+                    
+                    
                 #    Case 2. /JavaScript
                 #    Case 3. /JavaScript + g_Decode
                 #    Case 4. g_Decode
                 else :
-                    s_DecompObject = self.fnDecompObject(l_Object)
+                    s_DecompObject = self.fnDecompObject(s_fname, l_Object)
                     if s_DecompObject == None :
-                        print "\t" * 3 + "[-] Failure - DecompObject()"
-                        CFile.fnWriteFile("c:\\test1\\%s_ERROR_Decomp.dump" % s_fname, str(l_Object) )
+                        s_DecompDumpName = g_DumpPath + "\\%s_[ERROR] Decomp.dump" % s_fname
+                        CFile.fnWriteFile( s_DecompDumpName, str(l_Object))
+                        print "\t" * 3 + "[-] Failure - DecompObject() [ Dumpped : %s ]" % s_DecompDumpName
                         continue
                     if s_DecompObject == "" :
                         s_DecompObject = l_Object[ n_BodyIndex ]
-            
+
                 if s_DecompObject != "" :
                     l_ExtractJS.append( s_DecompObject )
+                    continue
+                
+# Case 2. None-/JS, /JavaScript & Do not Need to Decompress JavaScript
+                ExploitPDF = CExploitPDF()
+                if ExploitPDF.fnIsJavaScript( l_Object[ n_BodyIndex ] ) :
+                    l_ExtractJS.append( l_Object[ n_BodyIndex ] )
+                    continue
             
         except :
             print format_exc()
@@ -288,9 +324,10 @@ class CMappedPDF():
         return l_ExtractJS
 
 
+    #    s_fname                                     [IN]                            File Name
     #    l_Object                                    [IN]                            Object List
     #    s_DecompObject                              [OUT]                           Decompress Object Body Data
-    def fnDecompObject(self, l_Object):
+    def fnDecompObject(self, s_fname, l_Object):
         
         try :
             
@@ -421,15 +458,19 @@ class CExploitPDF():
                     if not self.fnIsJavaScript(s_Stream) :
                         continue
                     
+#                    s_StreamName = g_DumpPath + "\\%s_[Check] 0x%04X.dump" % (s_fname, n_Index)
+#                    CFile.fnWriteFile(s_StreamName, s_Stream)
+#                    
                     l_CVENo = []
                     l_CVENo = self.fnExploitPDFJS(s_Stream)
                     if l_CVENo == None or l_CVENo == [] :
                         s_UnescapedStream = self.fnUnescaping(s_Stream)
                         if s_UnescapedStream == None or s_UnescapedStream == "" :
-                            s_dumpName = "c:\\test1\\%s_ERROR_0x%08X_Unescaping.dump" % (s_fname, n_Index)
-                            print "\t" * 2 + "[-] Warning - Unescaping() [ Dumpped : %s ]" % s_dumpName
-                            CFile.fnWriteFile(s_dumpName, s_Stream)
+                            s_UnescapeName = g_DumpPath + "\\%s_[ERROR] Unescaped_0x%04X.dump" % (s_fname, n_Index)
+                            CFile.fnWriteFile(s_UnescapeName, s_Stream)
+                            print "\t" * 2 + "[-] Warning - Unescaping() [ Dumpped : %s ]" % s_UnescapeName
                             continue
+                        
                         l_CVENo = self.fnExploitPDFJS(s_UnescapedStream)
                         if l_CVENo == None :
                             print "\t" * 2 + "[-] Failure - ExploitPDFJS()"
@@ -438,8 +479,8 @@ class CExploitPDF():
                     if l_CVENo != [] :
                         dl_CVENo_Du.append( l_CVENo )
                         
-            l_CVENo_NoneDu = self.fnExploitCVENoUnDuplicate(dl_CVENo_Du)
-            if l_CVENo_NoneDu == None or l_CVENo_NoneDu == False :
+            l_CVENo_UnDu = self.fnExploitCVENoUnDuplicate(dl_CVENo_Du)
+            if l_CVENo_UnDu == None or l_CVENo_UnDu == False :
                 print "\t" * 2 + "[-] Failure - ExploitCVENoUnDuplicate()"
                 return None
             
@@ -447,7 +488,7 @@ class CExploitPDF():
             print format_exc()
             return None
         
-        return l_CVENo_NoneDu
+        return l_CVENo_UnDu
 
 
     #    dl_CVENo               [IN]               CVE No Double-List
@@ -502,19 +543,16 @@ class CExploitPDF():
                 for n_Index in range( dl_Object.__len__() -1 ) :
                     l_Object = dl_Object[ n_Index ]
                     for s_BodyObject in l_Object[ l_Object.__len__() - 1 ] :
-                        if CPE.Check( s_BodyObject ) == "PE" :
+                        if CPE.fnCheck( s_BodyObject ) == "PE" :
                             n_Cnt += 1
-                            CFile.fnWriteFile("c:\\test1\\%s_0x%08X_Embedded.dump" % (n_Index, s_fname), s_BodyObject)
-                            
+                            s_EmbeddedName = g_DumpPath + "\\%s_[ERROR] Embedded.dump" % s_fname
+                            CFile.fnWriteFile( s_EmbeddedName, s_BodyObject)
                             
         except :
             print format_exc()
             return None
         
         return n_Cnt 
-
-
-
 
 
     #    s_Stream                        [IN]                        Object Stream
@@ -591,8 +629,8 @@ class CExploitPDF():
                 else :
                     s_Content = s_Data[1:-1]
                     
-                if s_Content.__len__() > 150 : 
-                    return self.fnUnescape(s_Content)
+#                if s_Content.__len__() > 150 : 
+                return self.fnUnescape(s_Content)
                     
         except :
             print format_exc()

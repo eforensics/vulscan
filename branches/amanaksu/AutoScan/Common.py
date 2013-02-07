@@ -2,17 +2,19 @@
 
 
 
-import re
+import re, os, binascii
 from traceback import format_exc
 from string import letters, digits
-from struct import unpack
+from struct import unpack, error
 from collections import namedtuple
 
 # for Class Decode
 from struct import pack
 from zlib import decompress
 from cStringIO import StringIO
-from binascii import unhexlify
+#from binascii import unhexlify
+
+from Definition import *
 
 
 class CFile():
@@ -29,6 +31,7 @@ class CFile():
         
         except :
             print format_exc()
+            return None
             
         return p_file
     
@@ -44,6 +47,7 @@ class CFile():
         
         except :
             print format_exc()
+            return None
         
         return s_pBuf
     
@@ -54,15 +58,18 @@ class CFile():
     @classmethod
     def fnWriteFile(cls, s_fname, s_Buffer):
         try :
-            with open(s_fname, "wb") as p_file :
-                p_file.write( s_Buffer )
+            try :
+                with open(s_fname, "wb") as p_file :
+                    p_file.write( s_Buffer )
+            except :
+                with open(s_fname, "wb") as p_file :
+                    p_file.write( str(s_Buffer) )
             
         except :
             print format_exc()
-            return False
+            return None
             
         return True
-
 
 
 class CBuffer():
@@ -99,8 +106,7 @@ class CBuffer():
         except :
             print format_exc()
             return None
-
-   
+ 
     #    s_Buffer                            [IN]                    File Buffer
     #    Position                            [IN]                    Reading Position
     #                                        [OUT]                   Unpacked 2Bytes tuple  Data
@@ -111,11 +117,13 @@ class CBuffer():
             s_Val = s_Buffer[n_Position:n_Position+2]
             return unpack("<H", s_Val)[0]
         
+        except error :
+            return None
+        
         except :
             print format_exc()
             return None
-   
-   
+     
     #    s_Buffer                            [IN]                    File Buffer
     #    Position                            [IN]                    Reading Position
     #                                        [OUT]                   Unpacked 4Bytes Data
@@ -128,9 +136,8 @@ class CBuffer():
         
         except :
             print format_exc()
+            print "Buffer Size : 0x%08X, Position : 0x%08X" % (s_Buffer.__len__(), n_Position)
             return None
-    
-    
     #    s_Buffer                            [IN]                    String Buffer
     #    s_Seperator                         [IN]                    Seperator
     #    l_Buffer                            [OUT]                   String List By Seperator
@@ -159,7 +166,6 @@ class CBuffer():
             print format_exc()
             return None
     
-   
     #    n_Data                                    [IN]                        Parse Target Data ( Little-Endian )
     #    b_BitOffset                               [IN]                        Parse Target Bit
     #            Ex)        0x1200
@@ -182,7 +188,6 @@ class CBuffer():
             print format_exc()
             return None
 
-
     #    s_Rule                                    [IN]                        Parse Pattern Rule String
     #    n_Data                                    [IN]                        Parse Target Data ( Little-Endian )
     #    l_Unpack                                  [OUT]                       Unpacked Data 
@@ -190,6 +195,7 @@ class CBuffer():
     def fnBitUnpack(cls, s_Rule, n_Data):
         
         try :
+            
             l_Unpack = []
             b_BitCount = 0
             s_Pattern = s_Rule.split(',')
@@ -200,7 +206,7 @@ class CBuffer():
                         b_Size = b_tmpSize
                 else :
                     b_Size = int( b_Size )
-    
+                    
                 l_Unpack.append( (n_Data / 2 ** b_BitCount) & (2 ** b_Size-1) )
                 b_BitCount += int( b_Size )
         
@@ -209,7 +215,6 @@ class CBuffer():
             return None
         
         return l_Unpack
-    
     
     #    s_Buffer                                    [IN]                        Mapped Buffer
     #    s_NameString                                [IN]                        Mapped Name String
@@ -228,8 +233,6 @@ class CBuffer():
         except :
             print format_exc()
             return None
-        
-    
     
     #    n_Data                                    [IN]                        Parse Target Data ( Little-Endian )
     #    n_BitCount                                [OUT]                       Bit Count
@@ -257,7 +260,7 @@ class CBuffer():
     #    n_Size                                   [IN]                        Convert Target Binary Size
     #                                             [OUT]                       Converted Unsigned Integer 
     @classmethod
-    def fnConvertBinaryString2Int(cls, n_BinaryString, n_Size):
+    def fnConvertBinaryString2Int(cls, s_BinaryString, n_Size):
         
         try :
             
@@ -267,14 +270,12 @@ class CBuffer():
             elif n_Size == 4    :   s_Pattern = 'I'     # I - Unsigned Integer  , i - Signed Integer
             else                :   print "\t\t\t[-] Error - ConvertBinaryString2Int ( Do not Support Convert Size : 0x%08X )" % n_Size; return None
             
-            n_unpack = unpack( s_Pattern, n_BinaryString )  # type( n_unpack ) -> tuple
-            return n_unpack[0]
+            t_unpack = unpack( s_Pattern, s_BinaryString )  
+            return t_unpack[0]
         
         except :
             print format_exc()
             return None
-            
-
     #    s_Buffer                                        [IN]                        Target String Buffer 
     #    s_Filtered_Buffer                               [OUT]                       Filtered String Buffer
     def fnTakeOffHTMLAscii(self, s_Buffer):
@@ -363,27 +364,60 @@ class CBuffer():
         
         return s_Stream
 
+class CConvertString():
+    
+    # Unicode -> Hex        Ex) &H4D &H5A .... > 4D 5A
+    def fnConvertStr2Hex(self, s_Str, n_szPrefix, s_Prefix):
+        
+        try : 
+
+            s_OutBuf = ""
+            if s_Prefix == None and n_szPrefix != None :
+                s_Prefix = s_Str[0:n_szPrefix]
+            
+            n_Position = 0
+            while True :
+                if s_Prefix[0] != s_Str[n_Position:n_Position+1] :
+                    n_Position += 1
+                    continue
+
+                s_tmpData = s_Str[n_Position:n_Position+4].replace(s_Prefix, "")
+                s_OutBuf += binascii.a2b_hex( s_tmpData )
+                n_Position += 4
+                if n_Position == s_Str.__len__() :
+                    break
+        
+        except TypeError :
+            print "\t" * 4 + "[-] Error - ConvertStr2Hex() [%08X] %s [%08X] %s" % (n_Position, s_tmpData, n_Position/4, s_Str[n_Position:n_Position+4])
+            if n_Position > s_Str.__len__() * 0.9 :
+                return s_OutBuf
+        
+        except :
+            print format_exc()
+            return None
+        
+        return s_OutBuf
  
       
 class CDecode():
     def fnFlateDecode(self, stream):
         
         try :
-            
-            if ord( stream[0] ) == 13 and ord( stream[1] ) == 10 :      stream = stream[2:]
-            if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]
-            return decompress( stream )
+            try :
+                if ord( stream[0] ) == 13 and ord( stream[1] ) == 10 :      stream = stream[2:]
+                if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]
+                return decompress( stream )
+        
+            except :
+                Buffer = CBuffer()
+                if ord( stream[0] ) == 13 and ord( stream[1] ) == 10 :      stream = stream[2:]
+                if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]
+                s_Stream =  Buffer.fnTakeOffNewLineChar(stream, 0)
+                return decompress( s_Stream )
         
         except :
+            print format_exc()
             
-            
-            Buffer = CBuffer()
-            if ord( stream[0] ) == 13 and ord( stream[1] ) == 10 :      stream = stream[2:]
-            if ord( stream[-2] ) == 13 and ord( stream[-1] ) == 10 :    stream = stream[:-2]
-            s_Stream =  Buffer.fnTakeOffNewLineChar(stream, 0)
-            return decompress( s_Stream )
-
-    
     def fnASCII85Decode(self, stream):
         # http://pyew.googlecode.com/hg-history/e984a67f8cf1a564b97187171c237da98ce5b255/plugins/pdf.py
         
@@ -458,11 +492,9 @@ class CDecode():
                             break
             return out
 
-
     def fnASCIIHexDecode(self, stream):
-        return unhexlify(''.join([c for c in stream if c not in ' \t\n\r']).rstrip('>'))
-    
-    
+        return binascii.unhexlify(''.join([c for c in stream if c not in ' \t\n\r']).rstrip('>'))
+        
     def fnRunLengthDecode(self, stream):
         f = StringIO(stream)
         decompressed = ''
