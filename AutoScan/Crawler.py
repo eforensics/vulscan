@@ -73,7 +73,8 @@ class CFTPServer():
             # Check Target Directory By File Format
             l_TargetName = ["PDF",        \
                           "unknown",    \
-                          "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document", "Office Open XML Spreadsheet"]
+                          "MS Compress", "MS Excel Spreadsheet", "MS Word Document", "Office Open XML Document", "Office Open XML Spreadsheet", \
+                          "Rich Text Format"]
             l_ExtDir = []
             
             l_DirList = FTP.nlst()
@@ -99,8 +100,8 @@ class CFTPServer():
                 FileCount = 0
                 l_flist = FTP.nlst()
                 for s_fname in l_flist :
-                    if os.path.splitext( s_fname )[1] == ".txt" :
-                        continue
+#                    if os.path.splitext( s_fname )[1] == ".txt" :
+#                        continue
                     
                     MsgFTP = FTP.retrlines("RETR " + s_fname, open(s_fname, 'wb').write)
                     if MsgFTP.find( "226" ) == -1 :
