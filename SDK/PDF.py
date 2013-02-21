@@ -31,6 +31,9 @@ class CStructPDF():
     pass
 
 
+class CUtilPDF():
+    pass
+
 
 class CPrintPDF():
     pass
