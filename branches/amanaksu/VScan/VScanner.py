@@ -59,7 +59,6 @@ class CScan():
             return False
         
         return True
-
     def fnCreateFileList(self, options):
         l_Files = []
         l_tmpFiles = []
@@ -79,7 +78,6 @@ class CScan():
             print format_exc()
         
         return l_Files
-
     def fnIsScannable(self, s_fname):
         s_flagbuffer = None        
         s_format = "unknown"
@@ -98,7 +96,6 @@ class CScan():
             return s_format
         
         return s_format
-    
     def fnIsFormat(self, s_buffer):
         s_format = None
 
@@ -114,7 +111,6 @@ class CScan():
             return s_format
         
         return s_format
-
     def fnClassify(self):
         pass
 

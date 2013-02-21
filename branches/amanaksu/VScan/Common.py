@@ -1,10 +1,9 @@
 # External Import
 import os
+from struct import unpack
 from traceback import format_exc
 
-
 # Internal Import
-
 
 class CFile():
     @classmethod
@@ -22,7 +21,6 @@ class CFile():
             print format_exc()
         
         return p_file
-    
     @classmethod
     def fnReadFile(cls, s_fname):
         s_file = None
@@ -39,7 +37,6 @@ class CFile():
             print format_exc()
         
         return s_file
-    
     @classmethod
     def fnWriteFile(cls, s_fname, s_file):
         try :
@@ -54,16 +51,27 @@ class CFile():
         
         return True
 
-    
-
 class CBuffer():
-    pass
-
-
-
-
-
-
+    @classmethod
+    def fnReadData(cls, s_buffer, n_Position, n_Size):
+        
+        try :
+            if n_Size == 1 :
+                s_Sig = "<B"
+            elif n_Size == 2 :
+                s_Sig = "<H"
+            elif n_Size == 4 :
+                s_Sig = "<L"
+            else :
+                print "[-] Error - fnReadData( %d )" % n_Size
+                return None
+            
+            s_Val = s_buffer[n_Position:n_Position + n_Size]
+            return unpack( s_Sig, s_Val )[0]
+            
+        except :
+            print format_exc()
+            return None
 
 class CCheck():
     def fnCheckEnableFile(self, s_fname):
