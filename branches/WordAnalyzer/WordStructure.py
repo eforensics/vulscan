@@ -1,4 +1,12 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+'''
+author: Computists
+website: http://computists.tistory.com
+last modified: Feb 2013
+'''
+
 from struct import *
 from collections import namedtuple
 
@@ -118,10 +126,7 @@ def makePri (data):
 
 #== FIB Structure ==#
 # offset : 0x00 in WordDocument Stream
-# replace func getFIB() in main with this rules.
-
-#ruleChar_FIB = '32sH28sH88sH?H?'
-#ruleName_FIB = ('base csw fibRgW cslw fibRgLw cbRgFcLcb FibRgFcLcbBlob cswNew fibRgCswNew')
+# structure size : variable
 
 def getFIB (data):
 	size_Base = 32
@@ -134,7 +139,7 @@ def getFIB (data):
 	pointer = [0,32]
 	pOffset = [32]
 
-	for i in range(0,4) : ###
+	for i in range(0,4) : ### check the size of structures
 		pStart = pEnd
 		pEnd += 2
 		pointer.append(pEnd)
@@ -142,30 +147,91 @@ def getFIB (data):
 		pEnd = pEnd + offset
 		pointer.append(pEnd)
 		pOffset.append(offset)
-		
+
 	ruleChar_FIB = '32sH28sH88sH' + str(pOffset[3]) + 'sH' + str(pOffset[4]) + 's' ### variable 한 FibRgFcLcbBlob 때문에 flexible 한 데이터를 파싱하기 위해서 fix 할 수 없다.
 	ruleName_FIB = ('base csw fibRgW cslw fibRgLw cbRgFcLcb FibRgFcLcbBlob cswNew fibRgCswNew')
-
 	ntFIB = namedtuple('FIB',ruleName_FIB)
 	sFIB = ntFIB._make(unpack(ruleChar_FIB,data[:pointer[9]]))
 
-	return sFIB
+	sBase = GetFibBase(sFIB.base)
+	sFibRgW = GetFibRgW97(sFIB.fibRgW)
+	sFibRgLw = GetFibRgLw97(sFIB.fibRgLw)
+	sFibRgFcLcbBlob = GetFibRgFcLcbBlob(sFIB.cbRgFcLcb, sFIB.FibRgFcLcbBlob)
+	sfibRgCswNew = GetFibRgCswNew(sFIB.cswNew, sFIB.fibRgCswNew)
+
+	sNewFIB = ntFIB._make([sBase, sFIB.csw, sFibRgW, sFIB.cslw, sFibRgLw, sFIB.cbRgFcLcb, sFibRgFcLcbBlob, sFIB.cswNew, sfibRgCswNew]) ### FIB 하위 구조체를 하나로 묶어서 리턴
+
+	return sNewFIB
 
 #======================================#
-
 
 #== FIB Base Structure ==#
 # offset : 0x00 at FIB
 # structure size : 0x2e8
 
-ruleChar_FibBase = '<2s6HL3H2L'
-ruleName_FibBase = ('wIdent nFib unused lid pnNext opt nFibBack lKey opt2 reserved3 reserved4 reserved5 reserved6')
+def GetFibBase (data):
+	
+	ruleChar_FibBase = '<2s6HL3H2L'
+	ruleName_FibBase = ('wIdent nFib unused lid pnNext opt nFibBack lKey opt2 reserved3 reserved4 reserved5 reserved6')
 
-ruleChar_FibBaseOpt = "1,1,1,1,4,1,1,1,1,1,1,1,1"
-ruleName_FibBaseOpt = ('fDot fGlsy fComplex fHasPic cQuickSaves fEncrypted fWhichTblStm fReadOnlyRecommended fWriteReservation fExtChar fLoadOverride fFarEast fObfuscated')
+	ruleChar_FibBaseOpt = "1,1,1,1,4,1,1,1,1,1,1,1,1"
+	ruleChar_FibBaseOpt2 = "8,1,1,1,1,1,3"
+	ruleName_TotalFibBase = ('wIdent nFib unused lid pnNext fDot fGlsy fComplex fHasPic cQuickSaves fEncrypted fWhichTblStm fReadOnlyRecommended fWriteReservation fExtChar fLoadOverride fFarEast fObfuscated nFibBack lKey envr fMac fEmptySpecial fLoadOverridePage reserved1 reserved2 fSpare0 reserved3 reserved4 reserved5 reserved6')
+
+	ntFibBase = namedtuple('FibBase',ruleName_FibBase)
+	sFibBase = ntFibBase._make(unpack(ruleChar_FibBase,data))
+
+	fibBaseOpt = bitParse(ruleChar_FibBaseOpt,sFibBase.opt)
+	fibBaseOpt2 = bitParse(ruleChar_FibBaseOpt2,sFibBase.opt2)
+
+	total = []
+	for i in range(len(sFibBase)): ### 더럽다 다른 방법 없을까...
+		if i == 5: ### opt
+			for item in fibBaseOpt:
+				total.append(item)
+		elif i == 8: ### opt2
+			for item in fibBaseOpt2:
+				total.append(item)
+		else:
+			total.append(sFibBase[i])
+
+	ntTotalFibBase = namedtuple('TotalFibBase',ruleName_TotalFibBase)
+	sTotalFibBase = ntTotalFibBase._make(total)
+
+	return sTotalFibBase
 
 #======================================#
 
+#== FibRgW97 Structure ==#
+# offset : 0x34 at FIB
+# structure size : 0x38
+
+def GetFibRgW97 (data):	
+	ruleChar_FibRgW97 = '<14H'
+	ruleName_FibRgW97 = ('reserved1 reserved2 reserved3 reserved4 reserved5 reserved6 reserved7 reserved8 reserved9 reserved10 reserved11 reserved12 reserved13 lidFE')
+
+	ntFibRgW97 = namedtuple('FibBase',ruleName_FibRgW97)
+	sFibRgW97 = ntFibRgW97._make(unpack(ruleChar_FibRgW97,data))
+
+	return sFibRgW97
+
+#======================================#
+
+#== FibRgLW97 Structure ==#
+# offset : 0x34 at FIB
+# structure size : 0x38
+
+def GetFibRgLw97 (data):
+	
+	ruleChar_FibRgLw97 = '<22L'
+	ruleName_FibRgLw97 = ('cbMac reserved1 reserved2 ccpText ccpFtn ccpHdd reserved3 ccpAtn ccpEdn ccpTxbx ccpHdrTxbx reserved4 reserved5 reserved6 reserved7 reserved8 reserved9 reserved10 reserved11 reserved12 reserved13 reserved14')
+
+	ntFibRgLw97 = namedtuple('FibBase',ruleName_FibRgLw97)
+	sFibRgLw97 = ntFibRgLw97._make(unpack(ruleChar_FibRgLw97,data))
+
+	return sFibRgLw97
+
+#======================================#
 
 #== FibRgFcLcb97 Structure ==#
 # offset : 0x9A
@@ -254,7 +320,7 @@ def FibRgFcLcb2007 (data):
 
 #== FibRgFcLcbBlob ==#
 
-def getFibRgFcLcbBlob (cbRgFcLcb, data):
+def GetFibRgFcLcbBlob (cbRgFcLcb, data):
 
 	FibRgFcLcbInfo = [[0x5d,FibRgFcLcb97,'FibRgFcLcb97'], [0x6c,FibRgFcLcb2000,'FibRgFcLcb2000'],[0x88,FibRgFcLcb2002,'FibRgFcLcb2002'],[0xa4,FibRgFcLcb2003,'FibRgFcLcb2003'],[0xb7,FibRgFcLcb2007,'FibRgFcLcb2007']] ### cbRgFcLcb | Func | Func name(str)
 	pFirst = 0
@@ -282,7 +348,7 @@ def getFibRgFcLcbBlob (cbRgFcLcb, data):
 #== FibRgCswNew Structure ==#
 # structure size : variable
 
-def getFibRgCswNew (cswNew, data):
+def GetFibRgCswNew (cswNew, data):
 	if cswNew == 0 :	### cswNew 값이 0이면 FibRgCswNew 구조는 존재하지 않는다. 그러므로 None 을 리턴한다.
 		return None
 	else:	
