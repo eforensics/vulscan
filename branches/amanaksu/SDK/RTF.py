@@ -30,6 +30,8 @@ class CStructRTF():
     pass
 
 
+class CUtilRTF():
+    pass
 
 
 class CPrintRTF():
