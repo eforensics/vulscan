@@ -8,12 +8,14 @@ try :
     from RTF import *
     from OLE import *
     from PE import *
+    from Common import CFile
+#    from Common import CFile
 except :
     print "[-] Failed - File Import ( Format Module )"
     exit(-1)
 
-# Internal Module
-from Common import CFile
+# Internal Import Module
+
 
 
 class CScan():
@@ -21,9 +23,12 @@ class CScan():
     l_Known = ["PDF", "RTF", "OLE", "PE"]
     
     l_Unknwon = []
+    l_Except = []
     l_PDF = []
     l_RTF = []
     l_OLE = []
+    l_OLE_HWP = []
+    l_OLE_OFF = []
     l_PE = []    
     
     @classmethod
@@ -47,10 +52,12 @@ class CScan():
                 eval( "cls.l_%s" % s_format ).append( s_fname )
             
             # Step 3. Mapped Scan
+            ScanFile = CScanFile()
+            for s_format in cls.l_Known :
+                if not ScanFile.fnScanFileList(s_format, l_Files) :
+                    print "[-] Error - fnScanFileList( %s )" % s_format
             
-            
-            
-            # Step 4. Move Files ( Scanned File, .txt, .log )
+            # Step 4. Move Files ( .bin, .txt, .log )
             
             
             
@@ -84,7 +91,7 @@ class CScan():
         
         try :
             
-            s_flagbuffer = CFile.fnReadFile(s_fname)[:0x20]
+            s_flagbuffer = CFile.fnReadFile( s_fname )
             if s_flagbuffer == None :
                 print "[-] Error - fnReadFile( %s )" % s_fname
                 return s_format
@@ -102,7 +109,7 @@ class CScan():
         try :
             
             for s_known in self.l_Known :
-                s_format = eval("fnIs%s" % (s_known, s_known))(s_buffer)
+                s_format = eval("C%s.fnIs%s" % (s_known, s_known))(s_buffer)
                 if s_format != None :
                     break
                 
@@ -116,20 +123,105 @@ class CScan():
 
 
 class CScanFile():
+    s_FileVersion = ""
+    
     def fnScanFileList(self, s_format, l_files):
-        pass
-    
+        
+        try :
+            
+            Scan = CScan()
+            for s_fname in l_files :
+                if not eval( "self.fnScan%s" % s_format )( s_fname ) :
+                    Scan.l_Except.append( s_fname )
+            
+        except :
+            print format_exc()
+            
+        return True
     def fnScanPDF(self, s_fname):
-        pass
-    
-    def fnScanRTF(self, s_fname):
-        pass
-    
+        
+        print "[+] PDF"
+        
+        try :
+            
+            return True
+        
+        except :
+            print format_exc()
+            
+        return True
     def fnScanOLE(self, s_fname):
-        pass
-    
+        
+        print "[+] OLE",
+        
+        try :
+            Scan = CScan()
+            OLE = COLE()
+            
+            s_buffer = CFile.fnReadFile( s_fname )
+            s_format = OLE.fnIsSubFormat( s_buffer )
+            if s_format != "" :
+                eval( "Scan.l_OLE_%s" % s_format ).append( s_fname )
+                eval( "self.fnScan%s" % s_format )( s_buffer )
+            else :
+                return False
+            
+        except :
+            print format_exc()
+            
+        return True
+    def fnScanOffice(self, s_buffer):
+        
+        print "- Office"
+        
+        try :
+            
+            return True
+        
+        except:
+            print format_exc()
+            
+        return True
+    def fnScanHWP(self, s_buffer):
+        
+        print "- HWP"
+        
+        try :
+            
+            HWP = CHWP()
+            HWP.fnFindHWPHeader(s_buffer, dl_OLEDirectory, t_SAT, t_SSAT)
+            
+            
+            return True
+        
+        except :
+            print format_exc()
+            
+        return True
+    def fnScanRTF(self, s_fname):
+        
+        print "[+] RTF"
+        
+        try :
+            
+            return True
+        
+        except :
+            print format_exc()
+            
+        return True        
     def fnScanPE(self, s_fname):
-        pass
+        
+        print "[+] PE"
+        
+        try :
+            
+            return True
+        
+        except :
+            print format_exc()
+            
+        return True
     
 
 
