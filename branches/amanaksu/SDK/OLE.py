@@ -42,7 +42,60 @@ class COLE():
         except :
             print format_exc()
             return None
+    def fnFindDirectory(self, s_buffer):
+        dl_OLEDirectory = []
         
+        try :
+            
+            StructOLE = CStructOLE()
+            
+            # Parse OLE Header
+            t_OLEHeader = StructOLE.fnStructOLEHeader(s_buffer)
+            
+            # Extract OLE MSAT List
+            t_MSAT = StructOLE.fnStructOLEMSAT(s_buffer, t_OLEHeader)
+            if t_MSAT == () :
+                print "[-] Error - fnStructOLEMSAT()"
+                return dl_OLEDirectory
+            
+            # Extract OLE SAT List
+            t_SAT = StructOLE.fnStructOLESAT(s_buffer, t_MSAT)
+            if t_SAT == () :
+                print "[-] Error - fnStructOLESAT()"
+                return dl_OLEDirectory
+            
+            # Parse Directory Sector
+            dl_OLEDirectory = StructOLE.fnStructOLEDirectoryEx(s_buffer, t_SAT, t_OLEHeader.DirSecID, SIZE_OF_SECTOR)
+            if dl_OLEDirectory == [] :
+                print "[-] Error - fnStructOLEDirectoryEx()"
+                return dl_OLEDirectory
+            
+        except :
+            print format_exc()
+            
+        return dl_OLEDirectory
+    def fnIsSubFormat(self, s_buffer ):
+        s_format = ""
+        
+        try :
+            
+            dl_OLEDirectory = self.fnFindDirectory(s_buffer)
+            if dl_OLEDirectory == [] :
+                print "[-] Error - fnFindDirectory()"
+                return s_format
+            
+            UtilOLE = CUtilOLE()
+            n_Index = UtilOLE.fnFindEntryIndex(dl_OLEDirectory, "Hwp")
+            if n_Index == None :
+                s_format = "Office"
+            if n_Index != None :
+                s_format = "HWP"
+            
+        except :
+            print format_exc()
+        
+        return s_format
+       
 class CStructOLE():
     def fnStructOLEHeader(self, s_buffer):
         t_OLEHeader = ()        
@@ -58,10 +111,17 @@ class CStructOLE():
             print format_exc()
         
         return t_OLEHeader
-    def fnStructOLEMSAT(self, s_buffer, s_MSAT, n_MSATSecID, n_NumMSAT):
+    def fnStructOLEMSAT(self, s_buffer, t_OLEHeader):
         t_MSAT = ()
         
         try :
+            ExceptOLE = CExceptOLE()
+            
+            # Init
+            s_MSAT = t_OLEHeader.MSAT
+            n_MSATSecID = t_OLEHeader.MSATSecID
+            n_NumMSAT = t_OLEHeader.NumMSAT
+            
             # Check Exception
             if n_NumMSAT < 0 :
                 print "[-] Error - MSAT Number : %d" % n_NumMSAT
@@ -88,6 +148,10 @@ class CStructOLE():
                         n_ExtraMSATCnt -= 1
                         if n_ExtraMSATCnt == 0 :
                             break
+            
+            # Check MSAT
+            if not ExceptOLE.fnExceptMSAT(t_MSAT, t_OLEHeader.NumSAT) :
+                return ()
             
         except :
             print format_exc()
@@ -216,32 +280,88 @@ class CStructOLE():
             print format_exc()
             
         return l_Directory
+    def fnStructOLEDirectoryEx(self, s_buffer, t_SAT, n_DirSecID, n_Size):
+        dl_OLEDirectory = []
         
+        try :
+            
+            s_Directory = self.fnStructOLESector(s_buffer, t_SAT, n_DirSecID, n_Size)
+            if s_Directory == "" :
+                print "[-] Error - fnStructOLESector()"
+                return dl_OLEDirectory
+            
+            dl_OLEDirectory = self.fnStructOLEDirectory(s_Directory)
+            if dl_OLEDirectory == [] :
+                print "[-] Error - fnStructOLEDirectory()"
+                return dl_OLEDirectory
+            
+        except :
+            print format_exc()
+            
+        return dl_OLEDirectory
+ 
 class CMappedOLE(CStructOLE):
-    def fnMapOLEHeader(self, s_buffer):
-        t_OLEHeader = ()
+    t_OLEHeader = ()
+    t_OLEDirectory = ()
+    
+    def fnMapOLEHeader(self, s_buffer):        
         
         try :
             
             t_OLEHeader_Name = namedtuple("OLEHeader", RULE_OLEHEADER_NAME)
-            t_OLEHeader = t_OLEHeader_Name._make( unpack(RULE_OLEHEADER_PATTERN, s_buffer) )
+            self.t_OLEHeader = t_OLEHeader_Name._make( unpack(RULE_OLEHEADER_PATTERN, s_buffer) )
             
         except :
             print format_exc()
         
-        return t_OLEHeader
+        return self.t_OLEHeader
     def fnMapOLEDirectory(self, s_Directory):
-        t_OLEDirectory = ()
         
         try :
             
             t_OLEDirectory_Name = namedtuple("OLEDirectory", RULE_OLEDIRECTORY_NAME)
-            t_OLEDirectory = t_OLEDirectory_Name._make( unpack(RULE_OLEDIRECTORY_PATTERN, s_Directory) )
+            self.t_OLEDirectory = t_OLEDirectory_Name._make( unpack(RULE_OLEDIRECTORY_PATTERN, s_Directory) )
             
         except :
             print format_exc()
             
-        return t_OLEDirectory
+        return self.t_OLEDirectory
+
+class CUtilOLE():
+    def fnExtractAlphaNumber(self, s_buffer):
+        s_Outbuffer = ""
+        
+        try :
+            
+            s_Pattern = letters + digits
+            l_ExtList = []
+            for s_OneByte in s_buffer :
+                if s_OneByte in s_Pattern :
+                    l_ExtList.append( s_OneByte )
+            
+            s_Outbuffer = "".join( l_ExtList )
+            
+        except :
+            print format_exc()
+            
+        return s_Outbuffer
+    def fnFindEntryIndex(self, dl_OLEDirectory, s_Entry):
+        n_RetIndex = None
+        
+        try :
+            
+            n_Index = 0
+            while n_Index < dl_OLEDirectory.__len__() :
+                s_Repaired = self.fnExtractAlphaNumber(dl_OLEDirectory[n_Index][0])
+                if s_Repaired[:s_Entry.__len__()].find( s_Entry ) != -1 :
+                    n_RetIndex = n_Index
+                    break
+                n_Index += 1
+            
+        except :
+            print format_exc()
+            
+        return n_RetIndex
 
 class CExceptOLE(CStructOLE):
     def fnExceptTable(self, s_buffer, n_SecID, n_SecPos, n_Size):
@@ -261,6 +381,23 @@ class CExceptOLE(CStructOLE):
         return True
     
 # Define
+    def fnExceptMSAT(self, t_MSAT, n_NumSAT):
+        
+        try :
+            
+            n_SATCnt = 0
+            for n_SATIndex in t_MSAT :
+                if n_SATIndex >= 0 :
+                    n_SATCnt += 1
+            
+            if n_SATCnt != n_NumSAT :
+                print "[-] Error - SAT Count ( Checked Count : 0x%08X, NumSAT : 0x%08X )" % (n_SATCnt, n_NumSAT)
+                return False 
+            
+        except :
+            print format_exc()
+            
+        return True
 
 SIZE_OF_SECTOR = 0x200
 SIZE_OF_SHORT_SECTOR = 0x40
@@ -272,6 +409,9 @@ RULE_OLEHEADER_PATTERN = '=8s16s5h10s8l436s'
 SIZE_OF_DIRECTORY = 0x80
 RULE_OLEDIRECTORY_NAME = ('DirName Size Type Color LeftChild RightChild RootChild UID Flags createTime LastModifyTime SecID_Start StreamSize Reserved')
 RULE_OLEDIRECTORY_PATTERN = '=64sH2B3l16sl8s8s3l'
+
+class COffice():
+    pass
 
 class CStructOffice():
     def fnStructOfficeHeader(self, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT):
@@ -627,7 +767,6 @@ class CStructStream():
 class CMappedStream():
     pass
 
-
 class CUtilOffice(CStructOffice):
     pass
 
@@ -723,13 +862,14 @@ SIZE_OF_FIBFCLCB_2007 = 0x98      # 152Bytes
 RULE_FIBFCLCB_NAME_2007 = ('fcPlcfmthd lcbPlcfmthd fcSttbfBkmkMoveFrom lcbSttbfBkmkMoveFrom fcPlcfBkfMoveFrom lcbPlcfBkfMoveFrom fcPlcfBklMoveFrom lcbPlcfBklMoveFrom fcSttbfBkmkMoveTo lcbSttbfBkmkMoveTo fcPlcfBkfMoveTo lcbPlcfBkfMoveTo fcPlcfBklMoveTo lcbPlcfBklMoveTo fcUnused1 lcbUnused1 fcUnused2 lcbUnused2 fcUnused3 lcbUnused3 fcSttbfBkmkArto lcbSttbfBkmkArto fcPlcfBkfArto lcbPlcfBkfArto fcPlcfBklArto lcbPlcfBklArto fcArtoData lcbArtoData fcUnused4 lcbUnused4 fcUnused5 lcbUnused5 fcUnused6 lcbUnused6 fcOssTheme lcbOssTheme fcColorSchemeMapping lcbColorSchemeMapping')
 RULE_FIBFCLCB_PATTERN_2007 = '=38L'
 
-
-class CStructHWP():
-    def fnStructHWPHeader(self, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT):
+class CHWP():
+    def fnFindHWPHeader(self, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT):
         t_HWPHeader = ()
         
         try :
+            
             StructOLE = CStructOLE()
+            StructHWP = CStructHWP()
             s_RootEntry = StructOLE.fnStructOLESectorEx(s_buffer, None, dl_OLEDirectory, t_SAT, t_SSAT, "RootEntry")
             if s_RootEntry == "" :
                 print "[-] Error - StructHWPHeader( RootEntry )"
@@ -739,6 +879,22 @@ class CStructHWP():
             if s_HWPHeader == "" :
                 print "[-] Error - StructHWPHeader( FileHeader )"
                 return t_HWPHeader
+            
+            t_HWPHeader = StructHWP.fnStructHWPHeader(s_HWPHeader)
+            if t_HWPHeader == () :
+                print "[-] Error - fnStructHWPHeader()"
+                return t_HWPHeader
+            
+        except :
+            print format_exc()
+            
+        return t_HWPHeader
+
+class CStructHWP():
+    def fnStructHWPHeader(self, s_HWPHeader):
+        t_HWPHeader = ()
+        
+        try :
             
             MappedHWP = CMappedHWP()
             t_HWPHeader = MappedHWP.fnMapHWPHeader(s_HWPHeader)
@@ -804,42 +960,6 @@ class CExceptHWP(CStructHWP):
 
 RULE_HWPHEADER_NAME = ('Signature Version Property Reserved')
 RULE_HWPHEADER_PATTERN = '=32s2l216s'
-
-class CUtilOLE():
-    def fnExtractAlphaNumber(self, s_buffer):
-        s_Outbuffer = ""
-        
-        try :
-            
-            s_Pattern = letters + digits
-            l_ExtList = []
-            for s_OneByte in s_buffer :
-                if s_OneByte in s_Pattern :
-                    l_ExtList.append( s_OneByte )
-            
-            s_Outbuffer = "".join( l_ExtList )
-            
-        except :
-            print format_exc()
-            
-        return s_Outbuffer
-    def fnFindEntryIndex(self, dl_OLEDirectory, s_Entry):
-        n_RetIndex = None
-        
-        try :
-            
-            n_Index = 0
-            while n_Index < dl_OLEDirectory.__len__() :
-                s_Repaired = self.fnExtractAlphaNumber(dl_OLEDirectory[n_Index][0])
-                if s_Repaired[:s_Entry.__len__()].find( s_Entry ) != -1 :
-                    n_RetIndex = n_Index
-                    break
-                n_Index += 1
-            
-        except :
-            print format_exc()
-            
-        return n_RetIndex
 
 class CPrintOLE():
     def fnPrintOLEHeader(self):
