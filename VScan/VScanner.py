@@ -9,7 +9,6 @@ try :
     from OLE import *
     from PE import *
     from Common import CFile
-#    from Common import CFile
 except :
     print "[-] Failed - File Import ( Format Module )"
     exit(-1)
@@ -28,7 +27,7 @@ class CScan():
     l_RTF = []
     l_OLE = []
     l_OLE_HWP = []
-    l_OLE_OFF = []
+    l_OLE_Office = []
     l_PE = []    
     
     @classmethod
@@ -54,7 +53,9 @@ class CScan():
             # Step 3. Mapped Scan
             ScanFile = CScanFile()
             for s_format in cls.l_Known :
-                if not ScanFile.fnScanFileList(s_format, l_Files) :
+                if eval( "cls.l_%s" % s_format ) == [] :
+                    continue
+                if not ScanFile.fnScanFileList(s_format, eval( "cls.l_%s" % s_format )) :
                     print "[-] Error - fnScanFileList( %s )" % s_format
             
             # Step 4. Move Files ( .bin, .txt, .log )
@@ -80,7 +81,8 @@ class CScan():
                     if os.path.isdir( s_tmpFile ) :
                         continue
                     l_Files.append( s_tmpFile )
-            
+                os.chdir( options.dir )
+                
         except :
             print format_exc()
         
@@ -140,10 +142,11 @@ class CScanFile():
         return True
     def fnScanPDF(self, s_fname):
         
-        print "[+] PDF"
+        print "[+] PDF :",
         
         try :
             
+            print s_fname
             return True
         
         except :
@@ -155,26 +158,52 @@ class CScanFile():
         print "[+] OLE",
         
         try :
+            # for Saved File List
             Scan = CScan()
+            
+            # for OLE's Function Instance
             OLE = COLE()
+            HWP = CHWP()
+            Office = COffice()
             
             s_buffer = CFile.fnReadFile( s_fname )
-            s_format = OLE.fnIsSubFormat( s_buffer )
+            if not OLE.fnScanOLE(OLE, s_buffer) :
+                print "[-] Error - fnScanOLE()"
+                return False
+            
+            s_format = OLE.fnIsSubFormat( OLE )
             if s_format != "" :
                 eval( "Scan.l_OLE_%s" % s_format ).append( s_fname )
-                eval( "self.fnScan%s" % s_format )( s_buffer )
+                eval( "self.fnScan%s" % s_format )(OLE, s_fname, s_buffer)
+                
             else :
                 return False
+            
+            # for Print OLE Structure
+#            PrintOLE = CPrintOLE()
+#            PrintOLE.fnPrintOLEHeader()
+#            PrintOLE.fnPrintOLEDirectory(OLE.dl_OLEDirectory)
             
         except :
             print format_exc()
             
         return True
-    def fnScanOffice(self, s_buffer):
+    def fnScanOffice(self, OLE, s_fname, s_buffer):
         
-        print "- Office"
+        print "- Office :",
         
         try :
+            
+            print s_fname
+            
+            Office = COffice()
+            
+            # Scan Office Structure
+            if not Office.fnScanOffice( OLE, Office, s_buffer ) :
+                print "[-] Error - fnScanOffice()"
+                return False
+            
+            # Saved File Version
             
             return True
         
@@ -182,15 +211,22 @@ class CScanFile():
             print format_exc()
             
         return True
-    def fnScanHWP(self, s_buffer):
+    def fnScanHWP(self, OLE, s_fname, s_buffer):
         
-        print "- HWP"
+        print "- HWP :"
         
         try :
             
-            HWP = CHWP()
-            HWP.fnFindHWPHeader(s_buffer, dl_OLEDirectory, t_SAT, t_SSAT)
+            print s_fname
             
+            HWP = CHWP()
+            
+            # Scan HWP Structure
+            if not HWP.fnScanHWP( OLE, s_buffer ) :
+                print "[-] Error - fnScanHWP()"
+                return False
+            
+            # Saved File Version
             
             return True
         
@@ -200,10 +236,11 @@ class CScanFile():
         return True
     def fnScanRTF(self, s_fname):
         
-        print "[+] RTF"
+        print "[+] RTF :",
         
         try :
             
+            print s_fname
             return True
         
         except :
@@ -212,10 +249,11 @@ class CScanFile():
         return True        
     def fnScanPE(self, s_fname):
         
-        print "[+] PE"
+        print "[+] PE :",
         
         try :
             
+            print s_fname
             return True
         
         except :
