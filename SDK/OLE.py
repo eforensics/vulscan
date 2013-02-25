@@ -11,7 +11,28 @@ except :
     print "[-] Error - Internal Import "
     exit(-1)
 
+try :
+    from ExploitHWP import CExploitHWP
+    from ExploitOffice import CExploitOffice
+    from ExploitRTF import CExploitRTF
+except :
+    print "[-] Warning - Do not Scan Exploit!"
+
+
 class COLE():
+    # Class Member Value
+    t_OLEHeader = ()
+    t_OLEDirectory = ()
+    t_MSAT = ()
+    t_SAT = ()
+    t_SSAT = ()
+    # Class Member Method
+    def __init__(self):
+        self.t_OLEHeader = ()
+        self.t_OLEDirectory = ()
+        self.t_MSAT = ()
+        self.t_SAT = ()
+        self.t_SSAT = ()
     @classmethod
     def fnIsOLE(cls, s_buffer):
         
@@ -42,50 +63,48 @@ class COLE():
         except :
             print format_exc()
             return None
-    def fnFindDirectory(self, s_buffer):
-        dl_OLEDirectory = []
+    def fnScanOLE(self, OLE, s_buffer):
         
         try :
             
             StructOLE = CStructOLE()
             
             # Parse OLE Header
-            t_OLEHeader = StructOLE.fnStructOLEHeader(s_buffer)
+            if not StructOLE.fnStructOLEHeader(OLE, s_buffer) :
+                print "[-] Error - fnStructOLEHeader()"
+                return False
             
             # Extract OLE MSAT List
-            t_MSAT = StructOLE.fnStructOLEMSAT(s_buffer, t_OLEHeader)
-            if t_MSAT == () :
+            if not StructOLE.fnStructOLEMSAT(OLE, s_buffer) :
                 print "[-] Error - fnStructOLEMSAT()"
-                return dl_OLEDirectory
+                return False
             
             # Extract OLE SAT List
-            t_SAT = StructOLE.fnStructOLESAT(s_buffer, t_MSAT)
-            if t_SAT == () :
+            if not StructOLE.fnStructOLESAT(OLE, s_buffer) :
                 print "[-] Error - fnStructOLESAT()"
-                return dl_OLEDirectory
+                return False
             
             # Parse Directory Sector
-            dl_OLEDirectory = StructOLE.fnStructOLEDirectoryEx(s_buffer, t_SAT, t_OLEHeader.DirSecID, SIZE_OF_SECTOR)
-            if dl_OLEDirectory == [] :
+            if not StructOLE.fnStructOLEDirectoryEx(OLE, s_buffer, SIZE_OF_SECTOR) :
                 print "[-] Error - fnStructOLEDirectoryEx()"
-                return dl_OLEDirectory
+                return False
+            
+            # Extract OLE SSAT List
+            if not StructOLE.fnStructOLESSAT(OLE, s_buffer, SIZE_OF_SECTOR) :
+                print "[-] Error - fnStructOLESSAT()"
+                return False
             
         except :
             print format_exc()
             
-        return dl_OLEDirectory
-    def fnIsSubFormat(self, s_buffer ):
+        return True
+    def fnIsSubFormat(self, OLE ):
         s_format = ""
         
         try :
             
-            dl_OLEDirectory = self.fnFindDirectory(s_buffer)
-            if dl_OLEDirectory == [] :
-                print "[-] Error - fnFindDirectory()"
-                return s_format
-            
             UtilOLE = CUtilOLE()
-            n_Index = UtilOLE.fnFindEntryIndex(dl_OLEDirectory, "Hwp")
+            n_Index = UtilOLE.fnFindEntryIndex(OLE.dl_OLEDirectory, "Hwp")
             if n_Index == None :
                 s_format = "Office"
             if n_Index != None :
@@ -97,8 +116,7 @@ class COLE():
         return s_format
        
 class CStructOLE():
-    def fnStructOLEHeader(self, s_buffer):
-        t_OLEHeader = ()        
+    def fnStructOLEHeader(self, OLE, s_buffer): 
         
         try :
             
@@ -106,21 +124,30 @@ class CStructOLE():
             t_OLEHeader = MappedOLE.fnMapOLEHeader(s_buffer[0:SIZE_OF_OLE_HEADER])
             if t_OLEHeader == () :
                 print "[-] Error - fnMapOLEHeader()"
+                return False
+            else :
+                OLE.t_OLEHeader = t_OLEHeader
         
         except :
             print format_exc()
         
-        return t_OLEHeader
-    def fnStructOLEMSAT(self, s_buffer, t_OLEHeader):
+        return True
+    def fnStructOLEMSAT(self, OLE, s_buffer):
         t_MSAT = ()
         
         try :
+
+            # Check Exception
+            if OLE.t_OLEHeader == () :
+                print "[-] Error - fnStructOLEMSAT() : t_OLEHeader is Empty!"
+                return False
+            
             ExceptOLE = CExceptOLE()
             
             # Init
-            s_MSAT = t_OLEHeader.MSAT
-            n_MSATSecID = t_OLEHeader.MSATSecID
-            n_NumMSAT = t_OLEHeader.NumMSAT
+            s_MSAT = OLE.t_OLEHeader.MSAT
+            n_MSATSecID = OLE.t_OLEHeader.MSATSecID
+            n_NumMSAT = OLE.t_OLEHeader.NumMSAT
             
             # Check Exception
             if n_NumMSAT < 0 :
@@ -149,18 +176,29 @@ class CStructOLE():
                         if n_ExtraMSATCnt == 0 :
                             break
             
-            # Check MSAT
-            if not ExceptOLE.fnExceptMSAT(t_MSAT, t_OLEHeader.NumSAT) :
-                return ()
+                # Check MSAT
+                if not ExceptOLE.fnExceptMSAT(t_MSAT, OLE.t_OLEHeader.NumSAT) :
+                    return False
+            
+                OLE.t_MSAT = t_MSAT
             
         except :
             print format_exc()
+            return False
         
-        return t_MSAT
-    def fnStructOLESAT(self, s_buffer, t_MSAT):
+        return True
+    def fnStructOLESAT(self, OLE, s_buffer):
         t_SAT = ()
         
         try :
+            
+            # Check Exception
+            if OLE.t_MSAT == () :
+                print "[-] fnStructOLESAT() : MSAT is Empty!"
+                return False
+            
+            # Init
+            t_MSAT = OLE.t_MSAT
             
             for n_SecID in t_MSAT :
                 if n_SecID < 0 :
@@ -171,25 +209,41 @@ class CStructOLE():
                 t_tmpSAT = unpack( "128l", s_tmpSAT )
                 t_SAT += t_tmpSAT
             
+            OLE.t_SAT = t_SAT
+            
         except :
             print format_exc()
+            return False
             
-        return t_SAT        
-    def fnStructOLESSAT(self, s_buffer, t_SAT, n_SSATSecID, SIZE_OF_SECTOR):
-        t_SSAT = ()
+        return True        
+    def fnStructOLESSAT(self, OLE, s_buffer, SIZE_OF_SECTOR):
         
         try :
             
+            # Check Exception
+            if OLE.t_OLEHeader == () :
+                print "[-] Error - StructOLESSAT() : t_OLEHeader is Empty!"
+                return False
+            
+            if OLE.t_SAT == () :
+                print "[-] Error - StructOLESSAT() : t_SAT is Empty!"
+                return False
+            
+            # Init
+            n_SSATSecID = OLE.t_OLEHeader.SSATSecID
+            t_SAT = OLE.t_SAT
+            
             s_SSAT = self.fnStructOLESector(s_buffer, t_SAT, n_SSATSecID, SIZE_OF_SECTOR)
             if s_SSAT == "" :
-                return None
+                return False
             
-            t_SSAT = unpack( str(s_SSAT.__len__() / 4) + "l", s_SSAT )
+            OLE.t_SSAT = unpack( str(s_SSAT.__len__() / 4) + "l", s_SSAT ) 
             
         except :
             print format_exc()
+            return False
         
-        return t_SSAT
+        return True
     def fnStructOLESector(self, s_buffer, t_Table, n_SecID, n_Size):
         s_Sector = ""
         
@@ -200,13 +254,14 @@ class CStructOLE():
                 n_AddSector = 1
             if n_Size == SIZE_OF_SHORT_SECTOR :
                 n_AddSector = 0
-                
+            
             while True :
+                
                 s_tmpSector = ""
                 n_SecPos = (n_SecID + n_AddSector) * n_Size
                 s_tmpSector = s_buffer[n_SecPos:n_SecPos + n_Size]
                 if s_tmpSector == "" :
-                    if not ExceptOLE.fnExceptTable() :
+                    if not ExceptOLE.fnExceptTable(s_buffer, n_SecID, n_SecPos, n_Size) :
                         return ""
                 
                 s_Sector += s_tmpSector
@@ -222,6 +277,7 @@ class CStructOLE():
         s_Sector = ""
         
         try :
+            
             UtilOLE = CUtilOLE()
             n_Index = UtilOLE.fnFindEntryIndex(dl_OLEDirectory, s_Entry)
             if n_Index == None :
@@ -280,54 +336,64 @@ class CStructOLE():
             print format_exc()
             
         return l_Directory
-    def fnStructOLEDirectoryEx(self, s_buffer, t_SAT, n_DirSecID, n_Size):
-        dl_OLEDirectory = []
+    def fnStructOLEDirectoryEx(self, OLE, s_buffer, n_Size):
         
         try :
+            
+            # Check Exception
+            if OLE.t_OLEHeader == () :
+                print "[-] Error - fnStructOLEDirectoryEx() : t_OLEHeader is Empty!"
+                return False
+            if OLE.t_SAT == () :
+                print "[-] Error - fnStructOLEDirectoryEx() : t_SAT is Empty!"
+                return False
+            
+            # Init
+            n_DirSecID = OLE.t_OLEHeader.DirSecID
+            t_SAT = OLE.t_SAT
             
             s_Directory = self.fnStructOLESector(s_buffer, t_SAT, n_DirSecID, n_Size)
             if s_Directory == "" :
                 print "[-] Error - fnStructOLESector()"
-                return dl_OLEDirectory
+                return False
             
             dl_OLEDirectory = self.fnStructOLEDirectory(s_Directory)
             if dl_OLEDirectory == [] :
                 print "[-] Error - fnStructOLEDirectory()"
-                return dl_OLEDirectory
+                return False
+            else :
+                OLE.dl_OLEDirectory = dl_OLEDirectory
             
         except :
             print format_exc()
             
-        return dl_OLEDirectory
+        return True
  
 class CMappedOLE(CStructOLE):
-    t_OLEHeader = ()
-    t_OLEDirectory = ()
-    
     def fnMapOLEHeader(self, s_buffer):        
         
         try :
             
             t_OLEHeader_Name = namedtuple("OLEHeader", RULE_OLEHEADER_NAME)
-            self.t_OLEHeader = t_OLEHeader_Name._make( unpack(RULE_OLEHEADER_PATTERN, s_buffer) )
+            t_OLEHeader = t_OLEHeader_Name._make( unpack(RULE_OLEHEADER_PATTERN, s_buffer) )
             
         except :
             print format_exc()
         
-        return self.t_OLEHeader
+        return t_OLEHeader
     def fnMapOLEDirectory(self, s_Directory):
         
         try :
             
             t_OLEDirectory_Name = namedtuple("OLEDirectory", RULE_OLEDIRECTORY_NAME)
-            self.t_OLEDirectory = t_OLEDirectory_Name._make( unpack(RULE_OLEDIRECTORY_PATTERN, s_Directory) )
+            t_OLEDirectory = t_OLEDirectory_Name._make( unpack(RULE_OLEDIRECTORY_PATTERN, s_Directory) )
             
         except :
             print format_exc()
             
-        return self.t_OLEDirectory
+        return t_OLEDirectory
 
-class CUtilOLE():
+class CUtilOLE(CStructOLE):
     def fnExtractAlphaNumber(self, s_buffer):
         s_Outbuffer = ""
         
@@ -399,6 +465,42 @@ class CExceptOLE(CStructOLE):
             
         return True
 
+class CPrintOLE(CStructOLE):
+    def fnPrintOLEHeader(self):
+        pass
+    def fnPrintOLEDirectory(self, dl_OLEDirectory):
+        
+        try :
+            UtilOLE = CUtilOLE()
+            
+            print "\t" + "=" * 130
+            print "\t" + "%-33s%-11s%-11s%-11s%-11s%-11s%-11s%-11s%-10s%-8s" % ("DirectoryName", "szName", "Type", "Color", "Left", "Right", "Root", "Flags", "SecID", "szStream")
+            print "\t" + "-" * 130
+            n_Cnt = 0
+            while n_Cnt < dl_OLEDirectory.__len__() :
+                if UtilOLE.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0]) == "" :
+                    n_Cnt +=1
+                    continue
+                
+                for n_Index in range( dl_OLEDirectory[n_Cnt].__len__() ) :
+                    if n_Index == 0 :
+                        print "\t" + "%-30s" % UtilOLE.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0]),
+                    elif n_Index == 7 or n_Index == 9 or n_Index == 10 or n_Index == 13:
+                        continue
+                    else :
+                        print "0x%08X" % dl_OLEDirectory[n_Cnt][n_Index],
+                
+                print ""
+                n_Cnt += 1
+            
+            print "\t" + "=" * 130 + "\n"
+            
+        except :
+            print format_exc()
+            return False
+        
+        return True
+
 SIZE_OF_SECTOR = 0x200
 SIZE_OF_SHORT_SECTOR = 0x40
 
@@ -411,34 +513,167 @@ RULE_OLEDIRECTORY_NAME = ('DirName Size Type Color LeftChild RightChild RootChil
 RULE_OLEDIRECTORY_PATTERN = '=64sH2B3l16sl8s8s3l'
 
 class COffice():
-    pass
+    # Class Member Value
+    s_WordDoc = ""
+    s_TableStream = ""
+    s_DataStream = ""
+    t_FibBase = ()
+    t_FibRgW97 = ()
+    t_FibRgLw97 = ()
+    l_FibRgFcLcbBlob = []
+    t_FibRgFcLcb97 = ()
+    t_FibRgFcLcb2000 = ()
+    t_FibRgFcLcb2002 = ()
+    t_FibRgFcLcb2003 = ()
+    t_FibRgFcLcb2007 = ()
+    
+    l_StreamName = []
+    l_StreamOffset = []
+    l_StreamSize = []
+    
+    # Class Member Method
+    def __init__(self):
+        self.t_FibBase = ()
+        self.t_FibW97 = ()
+        self.t_FibLw97 = ()
+        self.l_FibRgFcLcbBlob = []
+        self.t_FibRgFcLcb97 = ()
+        self.t_FibRgFcLcb2000 = ()
+        self.t_FibRgFcLcb2002 = ()
+        self.t_FibRgFcLcb2003 = ()
+        self.t_FibRgFcLcb2007 = ()
+    def fnScanOffice(self, OLE, Office, s_buffer):
+        
+        try :
+            
+            # Scan WordDocument ( OfficeHeader )
+            if not self.fnScanOfficeHeader(OLE, Office, s_buffer) :
+                print "[-] Error - fnFindOfficeHeader()"
+                return False
+            
+            # Scan TableStream
+            if not self.fnScanTableStream(OLE, Office, s_buffer) :
+                print "[-] Error - fnScanTableStream()"
+                return False
+            
+            # Scan Stream
+            if not self.fnScanDataStream(OLE, Office, s_buffer) :
+                print "[-] Error - fnScanDataStream()"
+                return False
+            
+            StructStream = CStructStream()
+            if not StructStream.fnStructOfficeStream(OLE, Office, s_buffer) :
+                print "[-] Error - fnStructOfficeStream()"
+                return False
+            
+            # Scan Vulnerability
+            if not CExploitOffice.fnScanExploit() :
+                return
 
-class CStructOffice():
-    def fnStructOfficeHeader(self, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT):
+            
+        except :
+            print format_exc()
+            return False
+            
+        return True
+    def fnScanOfficeHeader(self, OLE, Office, s_buffer):
         t_WordDoc = ()
         
         try :
+    
+            # Check Exception
+            if OLE.dl_OLEDirectory == [] :
+                print "[-] fnScanOfficeHeader() : dl_OLEDirectory is Empty!"
+                return False
+            if OLE.t_SAT == () :
+                print "[-] fnScanOfficeHeader() : t_SAT is Empty!"
+                return False
+            if OLE.t_SSAT == () :
+                print "[-] fnScanOfficeHeader() : t_SSAT in Empty!"
+                return False
+            
+            # Init
+            dl_OLEDirectory = OLE.dl_OLEDirectory
+            t_SAT = OLE.t_SAT
+            t_SSAT = OLE.t_SSAT
+    
+            StructOffice = CStructOffice()
+            if not StructOffice.fnStructOfficeHeader(OLE, Office, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT) :
+                print "[-] Error - fnStructOfficeHeader()"
+                return False
+    
+        except :
+            print format_exc()
+            return False
+            
+        return True
+    def fnScanTableStream(self, OLE, Office, s_buffer):
+        
+        try :
+            
+            UtilOffice = CUtilOffice()
+            s_TableName = UtilOffice.fnUtilTable(Office.t_FibBase.Flag, 9, 1)
+            if s_TableName == "" :
+                print "[-] Error - fnUtilTable()"
+                return False
+            
+            StructOLE = CStructOLE()
+            s_Table = StructOLE.fnStructOLESectorEx(s_buffer, None, OLE.dl_OLEDirectory, OLE.t_SAT, OLE.t_SSAT, s_TableName)
+            if s_Table == "" :
+                print "[-] Error - fnStructOLESectorEx( %s )" % s_TableName
+                return False
+            
+            Office.s_TableStream = s_Table
+            
+        except :
+            print format_exc()
+            return False
+        
+        return True
+    def fnScanDataStream(self, OLE, Office, s_buffer):
+        s_Data = ""
+        
+        try :
+        
+            StructOLE = CStructOLE()
+            s_Data = StructOLE.fnStructOLESectorEx(s_buffer, None, OLE.dl_OLEDirectory, OLE.t_SAT, OLE.t_SSAT, "Data")
+            Office.s_DataStream = s_Data
+        
+        except :
+            print format_exc()
+            return False
+    
+        return s_Data
+    
+class CStructOffice():
+    def fnStructOfficeHeader(self, OLE, Office, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT):
+        
+        try :
+            
             StructOLE = CStructOLE()
             s_WordDoc = StructOLE.fnStructOLESectorEx(s_buffer, None, dl_OLEDirectory, t_SAT, t_SSAT, "WordDocument")
             if s_WordDoc == "" :
                 print "[-] Error - StructOfficeHeader( WordDocument )"
-                return t_WordDoc
+                return False
             
-            if not self.fnStructOfficeWordDoc(s_WordDoc) :
+            Office.s_WordDoc = s_WordDoc
+            
+            if not self.fnStructOfficeWordDoc(Office, s_WordDoc) :
                 print "[-] Error - StructofficeWordDoc()"
-                return t_WordDoc
+                return False
             
         except :
             print format_exc()
+            return False
         
-        return t_WordDoc
-    def fnStructOfficeWordDoc(self, s_WordDoc):
+        return True
+    def fnStructOfficeWordDoc(self, Office, s_WordDoc):
         
         try :
             n_Position = 0
             
             # Mapped FibBase
-            n_Position = self.fnStructFibBase(s_WordDoc, n_Position)
+            n_Position = self.fnStructFibBase(Office, s_WordDoc, n_Position)
             if n_Position == None :
                 print "[-] Error - fnStructFibBase()"
                 return False
@@ -449,7 +684,7 @@ class CStructOffice():
                 print "[-] Error - fnStructGetSizeFibW97()"
                 return False
             
-            n_Position = self.fnStructFibRgW97(s_WordDoc, n_Position)
+            n_Position = self.fnStructFibRgW97(Office, s_WordDoc, n_Position)
             if n_Position == None :
                 print "[-] Error - fnStructFibW97()"
                 return False
@@ -460,7 +695,7 @@ class CStructOffice():
                 print "[-] Error - fnStructGetSizeFibLw97()"
                 return False
             
-            n_Position = self.fnStructFibRgLw97(s_WordDoc, n_Position)
+            n_Position = self.fnStructFibRgLw97(Office, s_WordDoc, n_Position)
             if n_Position == None :
                 print "[-] Error - fnStructFibLw97()"
                 return False
@@ -470,25 +705,25 @@ class CStructOffice():
             
             
             # Fixed nFib
-            n_Fib = self.fnStructSetFib(s_WordDoc, n_Position)
+            n_Fib = self.fnStructSetFib(Office ,s_WordDoc, n_Position)
             
             # Mapped FibRgFcLcbBlob
-            if not self.fnStructFibRgFcLcbBlob(s_WordDoc, n_Position_FibRgFcLcb, n_Fib) :
+            if not self.fnStructFibRgFcLcbBlob(Office, s_WordDoc, n_Position_FibRgFcLcb, n_Fib) :
                 print "[-] Error - fnStructFibRgFcLcbBlob()"
                 return False
             
         except :
             print format_exc()
-            
+        
         return True
-    def fnStructFibBase(self, s_buffer, n_Position):
+    def fnStructFibBase(self, Office, s_buffer, n_Position):
         
         try :
             MappedOffice = CMappedOffice()
             ExceptOffice = CExceptOffice()
             
-            MappedOffice.fnMapFibBase(s_buffer[n_Position:n_Position + SIZE_OF_FIBBASE])
-            if not ExceptOffice.fnExceptFibBase( MappedOffice.t_FibBase ) :
+            MappedOffice.fnMapFibBase(Office, s_buffer[n_Position:n_Position + SIZE_OF_FIBBASE])
+            if not ExceptOffice.fnExceptFibBase( Office.t_FibBase ) :
                 return None
             
             n_Position += SIZE_OF_FIBBASE
@@ -516,14 +751,14 @@ class CStructOffice():
             print format_exc()
             
         return n_Position
-    def fnStructFibRgW97(self, s_buffer, n_Position):
+    def fnStructFibRgW97(self, Office, s_buffer, n_Position):
         
         try :
             MappedOffice = CMappedOffice()
             ExceptOffice = CExceptOffice()
             
-            MappedOffice.fnMapFibRgW97(s_buffer[n_Position:n_Position + SIZE_OF_FIBW97])
-            if not ExceptOffice.fnExceptFibRgW97( MappedOffice.t_FibW97 ) :
+            MappedOffice.fnMapFibRgW97(Office, s_buffer[n_Position:n_Position + SIZE_OF_FIBW97])
+            if not ExceptOffice.fnExceptFibRgW97( Office.t_FibRgW97 ) :
                 return None
             
             n_Position += SIZE_OF_FIBW97
@@ -551,14 +786,14 @@ class CStructOffice():
             print format_exc()
             
         return n_Position
-    def fnStructFibRgLw97(self, s_buffer, n_Position):
+    def fnStructFibRgLw97(self, Office, s_buffer, n_Position):
         
         try :
             MappedOffice = CMappedOffice()
             ExceptOffice = CExceptOffice()
             
-            MappedOffice.fnMapFibRgLw97(s_buffer[n_Position:n_Position + SIZE_OF_FIBLW97])
-            if not ExceptOffice.fnExceptFibRgLw97( MappedOffice.t_FibLw97 ) :
+            MappedOffice.fnMapFibRgLw97(Office, s_buffer[n_Position:n_Position + SIZE_OF_FIBLW97])
+            if not ExceptOffice.fnExceptFibRgLw97( Office.t_FibRgLw97 ) :
                 return None
             
             n_Position += SIZE_OF_FIBLW97
@@ -588,10 +823,9 @@ class CStructOffice():
             print format_exc()
             
         return n_Position, n_OldPosition
-    def fnStructSetFib(self, s_buffer, n_Position) :
+    def fnStructSetFib(self, Office, s_buffer, n_Position) :
         
         try :
-            MappedOffice = CMappedOffice()
             
             l_cswNew = [0x0000, 0x0002, 0x0002, 0x0002, 0x0005]
             l_Fib = [0x00C1, 0x00D9, 0x0101, 0x010C, 0x0112]
@@ -604,7 +838,7 @@ class CStructOffice():
             n_Position += 2
             
             if n_cswNew == 0 :
-                n_Fib = MappedOffice.t_FibBase.nFib
+                n_Fib = Office.t_FibBase.nFib
             else :
                 n_Fib = CBuffer.fnReadData(s_buffer, n_Position, 2)
             
@@ -616,14 +850,14 @@ class CStructOffice():
             print format_exc()
             
         return n_Fib
-    def fnStructFibRgFcLcbBlob(self, s_buffer, n_Position, n_Fib):
+    def fnStructFibRgFcLcbBlob(self, Office, s_buffer, n_Position, n_Fib):
         
         try :
             MappedOffice = CMappedOffice()
             ExceptOffice = CExceptOffice()
             
-            MappedOffice.fnMapFibRgFcLcbBlob(s_buffer[n_Position:], n_Fib)
-            if not ExceptOffice.fnExceptFibRgFcLcbBlob( MappedOffice.l_FibRgFcLcbBlob ) :
+            MappedOffice.fnMapFibRgFcLcbBlob(Office, s_buffer[n_Position:], n_Fib)
+            if not ExceptOffice.fnExceptFibRgFcLcbBlob( Office.l_FibRgFcLcbBlob ) :
                 return False
             
         except :
@@ -632,53 +866,44 @@ class CStructOffice():
             
         return True
             
-class CMappedOffice(CStructOffice): 
-    t_FibBase = ()
-    t_FibW97 = ()
-    t_FibLw97 = ()
-    l_FibRgFcLcbBlob = []
-    t_FibRgFcLcb97 = ()
-    t_FibRgFcLcb2000 = ()
-    t_FibRgFcLcb2002 = ()
-    t_FibRgFcLcb2003 = ()
-    t_FibRgFcLcb2007 = ()
-    
-    def fnMapFibBase(self, s_FibBase):
+class CMappedOffice(CStructOffice):     
+    def fnMapFibBase(self, Office, s_FibBase):
         
         try :
-        
+            
             t_FibBase_Name = namedtuple("FibBase", RULE_FIBBASE_NAME)
-            self.t_FibBase = t_FibBase_Name._make( unpack(RULE_FIBBASE_PATTERN, s_FibBase) )
+            Office.t_FibBase = t_FibBase_Name._make( unpack(RULE_FIBBASE_PATTERN, s_FibBase) )
             
         except :
             print format_exc()
         
-        return self.t_FibBase
-    def fnMapFibRgW97(self, s_FibRgW97):
+        return Office.t_FibBase
+    def fnMapFibRgW97(self, Office, s_FibRgW97):
         
         try :
             
-            t_FibW97_Name = namedtuple("FibW97", RULE_FIBW97_NAME)
-            self.t_FibW97 = t_FibW97_Name._make( unpack(RULE_FIBW97_PATTERN, s_FibRgW97) )
+            t_FibRgW97_Name = namedtuple("FibRgW97", RULE_FIBW97_NAME)
+            Office.t_FibRgW97 = t_FibRgW97_Name._make( unpack(RULE_FIBW97_PATTERN, s_FibRgW97) )
             
         except :
             print format_exc()
             
-        return self.t_FibW97
-    def fnMapFibRgLw97(self, s_FibRgLw97):
+        return Office.t_FibW97
+    def fnMapFibRgLw97(self, Office, s_FibRgLw97):
         
         try :
             
-            t_FibLw97_Name = namedtuple("FibLw97", RULE_FIBLW97_NAME)
-            self.t_FibLw97 = t_FibLw97_Name._make( unpack(RULE_FIBLW97_PATTERN, s_FibRgLw97) )
+            t_FibRgLw97_Name = namedtuple("FibRgLw97", RULE_FIBLW97_NAME)
+            Office.t_FibRgLw97 = t_FibRgLw97_Name._make( unpack(RULE_FIBLW97_PATTERN, s_FibRgLw97) )
             
         except :
             print format_exc()
             
-        return self.t_FibLw97
-    def fnMapFibRgFcLcbBlob(self, s_FibRgFcLcb, n_Fib):
+        return Office.t_FibLw97
+    def fnMapFibRgFcLcbBlob(self, Office, s_FibRgFcLcb, n_Fib):
         
         try :
+            
             l_Blob = ["97",   "2000", "2002", "2003", "2007"]
             l_Size = [0x2E8,  0x78,   0xE0,   0xE0,   0x98  ]
             l_Fib =  [0x00C1, 0x00D9, 0x0101, 0x010C, 0x0112]
@@ -686,16 +911,16 @@ class CMappedOffice(CStructOffice):
             n_Position = 0
             
             for n_VerYear in enumerate(l_Blob) :
-                eval( "self.fnMapFibRgFcLcb%s(s_FibRgFcLcb[n_Position:n_Position + SIZE_OF_FIBFCLCB%s])" % (n_VerYear[1], l_Size[ n_VerYear[0] ]) )
-                if eval( "self.t_FibRgFcLcb%s" % n_VerYear[1] ) == () :
+                eval( "self.fnMapFibRgFcLcb%s(Office, s_FibRgFcLcb[n_Position:n_Position + SIZE_OF_FIBFCLCB_%s])" % (n_VerYear[1], l_Blob[ n_VerYear[0] ]) )
+                if eval( "Office.t_FibRgFcLcb%s" % n_VerYear[1] ) == () :
                     print "[-] Error - fnMapFibRgFcLcb%s( Position : 0x%08X, Size : 0x%08X )" % (n_VerYear[1], n_Position, l_Size[ n_VerYear[0] ] )
                     break
                 
-                self.l_FibRgFcLcbBlob.append( eval( "self.t_FibRgFcLcb%s" % n_VerYear[1] ) )
+                Office.l_FibRgFcLcbBlob.append( eval( "Office.t_FibRgFcLcb%s" % n_VerYear[1] ) )
                 if l_Fib[ n_VerYear[0] ] == 0x0112 :
                     if n_Fib != 0x0112 :
                         print "[-] Error - nFib : 0x%04X" % n_Fib
-                    break
+                        break
                 elif n_Fib == l_Fib[ n_VerYear[0] ] :
                     break
             
@@ -704,71 +929,142 @@ class CMappedOffice(CStructOffice):
         except :
             print format_exc()
             
-        return self.l_FibRgFcLcbBlob
-    def fnMapFibRgFcLcb97(self, s_FibRgFcLcb97):
+        return Office.l_FibRgFcLcbBlob
+    def fnMapFibRgFcLcb97(self, Office, s_FibRgFcLcb97):
         
         try :
             
             t_FibRgFcLcb97_Name = namedtuple("FibRgFcLcb97", RULE_FIBFCLCB_NAME_97)
-            self.t_FibRgFcLcb97 = t_FibRgFcLcb97_Name._make( unpack(RULE_FIBFCLCB_PATTERN_97, s_FibRgFcLcb97) )
+            Office.t_FibRgFcLcb97 = t_FibRgFcLcb97_Name._make( unpack(RULE_FIBFCLCB_PATTERN_97, s_FibRgFcLcb97) )
             
         except :
             print format_exc()
             
-        return self.t_FibRgFcLcb97
-    def fnMapFibRgFcLcb2000(self, s_FibRgFcLcb2000):
+        return Office.t_FibRgFcLcb97
+    def fnMapFibRgFcLcb2000(self, Office, s_FibRgFcLcb2000):
         
         try :
             
             t_FibRgFcLcb2000_Name = namedtuple("FibRgFcLcb2000", RULE_FIBFCLCB_NAME_2000)
-            self.t_FibRgFcLcb2000 = t_FibRgFcLcb2000_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2000, s_FibRgFcLcb2000) )
+            Office.t_FibRgFcLcb2000 = t_FibRgFcLcb2000_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2000, s_FibRgFcLcb2000) )
             
         except :
             print format_exc()
             
-        return self.t_FibRgFcLcb2000
-    def fnMapFibRgFcLcb2002(self, s_FibRgFcLcb2002):
+        return Office.t_FibRgFcLcb2000
+    def fnMapFibRgFcLcb2002(self, Office, s_FibRgFcLcb2002):
         
         try :
             
             t_FibRgFcLcb2002_Name = namedtuple("FibRgFcLcb2002", RULE_FIBFCLCB_NAME_2002)
-            self.t_FibRgFcLcb2002 = t_FibRgFcLcb2002_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2002, s_FibRgFcLcb2002) )
+            Office.t_FibRgFcLcb2002 = t_FibRgFcLcb2002_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2002, s_FibRgFcLcb2002) )
             
         except :
             print format_exc()
             
-        return self.t_FibRgFcLcb2002
-    def fnMapFibRgFcLcb2003(self, s_FibRgFcLcb2003):
+        return Office.t_FibRgFcLcb2002
+    def fnMapFibRgFcLcb2003(self, Office, s_FibRgFcLcb2003):
         
         try :
             
             t_FibRgFcLcb2003_Name = namedtuple("FibRgFcLcb2003", RULE_FIBFCLCB_NAME_2003)
-            self.t_FibRgFcLcb2003 = t_FibRgFcLcb2003_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2003, s_FibRgFcLcb2003) )
+            Office.t_FibRgFcLcb2003 = t_FibRgFcLcb2003_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2003, s_FibRgFcLcb2003) )
             
         except :
             print format_exc()
             
-        return self.t_FibRgFcLcb2003
-    def fnMapFibRgFcLcb2007(self, s_FibRgFcLcb2007):
+        return Office.t_FibRgFcLcb2003
+    def fnMapFibRgFcLcb2007(self, Office, s_FibRgFcLcb2007):
         
         try :
             
             t_FibRgFcLcb2007_Name = namedtuple("FibRgFcLcb2007", RULE_FIBFCLCB_NAME_2007)
-            self.t_FibRgFcLcb2007 = t_FibRgFcLcb2007_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2007, s_FibRgFcLcb2007) )
+            Office.t_FibRgFcLcb2007 = t_FibRgFcLcb2007_Name._make( unpack(RULE_FIBFCLCB_PATTERN_2007, s_FibRgFcLcb2007) )
             
         except :
             print format_exc()
             
-        return self.t_FibRgFcLcb2007
+        return Office.t_FibRgFcLcb2007
 
-class CStructStream():
-    pass
-
-class CMappedStream():
+class CStructStream(CStructOffice):
+    def fnStructOfficeStream(self, OLE, Office, s_buffer):
+        
+        try :
+            
+            # Get Structure List
+            self.fnStructStreamData(Office.l_FibRgFcLcbBlob, " ")
+            
+            # Parse Structure List
+            self.fnStructParseStream(OLE, Office, s_buffer)
+            
+        except :
+            print format_exc()
+            return False
+        
+        return True
+    def fnStructStreamData(self, l_FibRgFcLcbBlob, s_Seperator):
+        pass
+    def fnStructParseStream(self, OLE, Office, s_buffer):
+        pass
+    
+class CMappedStream(CStructOffice):
     pass
 
 class CUtilOffice(CStructOffice):
-    pass
+    def fnUtilFlag(self, n_Flag):
+        s_Algorithm = ""
+        
+        try :
+            
+            # Get Encrypted Bit
+            b_BitOffset = 8
+            b_Encrypted = CBuffer.fnBitParse(n_Flag, b_BitOffset, 1)
+            if b_Encrypted == None :
+                print "[-] Error - fnBitParse() : Encrypted"
+                return s_Algorithm
+            
+            # Get Obfuscated Bit
+            n_BitOffset = 15
+            b_Obfuscated = CBuffer.fnBitParse(n_Flag, b_BitOffset, 1)
+            if b_Obfuscated == None :
+                print "[-] Error - fnBitParse() : Obfuscated"
+                return s_Algorithm
+            
+            # Check Algorithm
+            if b_Encrypted == 0 and b_Obfuscated == 0 :
+                s_Algorithm = "None"
+            elif b_Encrypted == 1 and b_Obfuscated == 0 :
+                s_Algorithm = "RC4"
+            elif b_Encrypted == 0 and b_Obfuscated == 1 :
+                s_Algorithm = "XOR"
+            else :
+                print "[-] Error - Unknown Algorithm"
+            
+        except :
+            print format_exc()
+            return s_Algorithm
+        
+        return s_Algorithm
+    def fnUtilTable(self, n_Flag):
+        s_Table = ""
+        
+        try :
+            
+            b_Table = CBuffer.fnBitParse(n_Flag, 9, 1)
+            if b_Table == None :
+                print "[-] Error - fnBitParse() : TableName"
+                return s_Table
+            
+            if b_Table == 1 :
+                s_Table = "1Table"
+            else :
+                s_Table = "0Table"
+            
+        except :
+            print format_exc()
+            return s_Table
+    
+        return s_Table
 
 class CExceptOffice(CStructOffice):
     def fnExceptFibBase(self, t_FibBase):
@@ -787,10 +1083,11 @@ class CExceptOffice(CStructOffice):
             
             for n_Ver in enumerate(l_FIBMagicNumber) :
                 if t_FibBase.wIdent == n_Ver[1] :
-                    print "[*] Version By Fib MagicNumber : %s" % l_VersionByFIBMagicNumber[ n_Ver[0] ]
+                    print "\t[*] Version By Fib MagicNumber : %s" % l_VersionByFIBMagicNumber[ n_Ver[0] ]
             
         except :
             print format_exc()
+            return False
             
         return True
     def fnExceptFibRgW97(self, t_FibRgW97):
@@ -803,6 +1100,7 @@ class CExceptOffice(CStructOffice):
             
         except :
             print format_exc()
+            return False
             
         return True
     def fnExceptFibRgLw97(self, t_FibRgLw97):
@@ -815,20 +1113,44 @@ class CExceptOffice(CStructOffice):
         
         except :
             print format_exc()
+            return False
             
         return True
-    def fnExceptFibRgFcLcbBlob(self, l_FibRgFcLcb):
+    def fnExceptFibRgFcLcbBlob(self, l_FibRgFcLcbBlob):
         
         try :
             
-            if l_FibRgFcLcb == [] :
+            if l_FibRgFcLcbBlob == [] :
                 print "[-] Error -fnMapFibRgFcLcbBlob()"
                 return False
             
         except :
             print format_exc()
+            return False
         
         return True
+
+class CPrintOffice(CStructOffice):
+    def fnPrintOfficeStream(self, dl_StreamOffset, dl_StreamName, dl_StreamSize):
+        
+        try :
+            l_Version = ["97", "2000", "2002", "2003", "2007"]
+            
+            print "\n\t\t\t" + "=" * 50
+            print "\t\t\t%4s%19s\t%10s\t%7s" % ("Index", "Member", "Offset", "Size")
+            print "\t\t\t" + "-" * 50
+            for n_Ver in range( dl_StreamOffset.__len__() ) :
+                print "\t\t\t[ Office%4s ]" % l_Version[ n_Ver ]
+                for n_Cnt in range( dl_StreamOffset[n_Ver].__len__() ) :
+                    print "\t\t\t%02X%22s\t0x%08X\t0x%08X" % (n_Cnt, dl_StreamName[n_Ver][n_Cnt], dl_StreamOffset[n_Ver][n_Cnt], dl_StreamSize[n_Ver][n_Cnt])
+            print "\t\t\t" + "=" * 50 + "\n"
+            
+        except :
+            print format_exc()
+            return False
+        
+        return True
+
 
 SIZE_OF_FIBBASE = 0x20            # 32Bytes
 RULE_FIBBASE_NAME = ('wIdent nFib unused lid pnNext Flag nFibBack lKey envr envtFlag reserved3 reserved4 reserved5 reserved6')
@@ -863,33 +1185,146 @@ RULE_FIBFCLCB_NAME_2007 = ('fcPlcfmthd lcbPlcfmthd fcSttbfBkmkMoveFrom lcbSttbfB
 RULE_FIBFCLCB_PATTERN_2007 = '=38L'
 
 class CHWP():
-    def fnFindHWPHeader(self, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT):
+    # Class Member Value
+    s_RootEntry = ""
+    t_HWPHeader = ()
+    l_HWPSSector = []
+    # Class Member Method
+    def __init__(self):
+        self.s_RootEntry = ""
+        self.t_HWPHeader = ()
+        self.l_HWPSSector = []
+    def fnScanHWP(self, OLE, s_buffer):
+        
+        try :
+            
+            # Find HWP Header
+            if not self.fnFindHWPHeader(OLE, s_buffer) :
+                print "[-] fnFindHWPHeader()"
+                return False
+            
+            # Extract HWP's remind Sectors
+            if not self.fnExtractSSector(OLE, s_buffer) :
+                print "[-] fnExtractSSector()"
+                return False
+            
+            # Scan Vulnerability            
+            if not CExploitHWP.fnScanExploit(self.l_HWPSSector) :
+                print "[-] ScanExploit()"
+                return False
+            
+        except :
+            print format_exc()
+            return False
+        
+        return True
+    def fnFindHWPHeader(self, OLE, s_buffer):
         t_HWPHeader = ()
         
         try :
             
+            # Check Exception 
+            if OLE.dl_OLEDirectory == () :
+                print "[-] fnFindHWPHeader() : dl_OLEDirectory is Empty!"
+                return False
+            if OLE.t_SAT == () :
+                print "[-] fnFindHWPHeader() : t_SAT is Empty!"
+                return False
+            if OLE.t_SSAT == () :
+                print "[-] fnFindHWPHeader() : t_SSAT is Empty!"
+                return False
+            
+            # Init
             StructOLE = CStructOLE()
             StructHWP = CStructHWP()
+            dl_OLEDirectory = OLE.dl_OLEDirectory
+            t_SAT = OLE.t_SAT
+            t_SSAT = OLE.t_SSAT
+            
             s_RootEntry = StructOLE.fnStructOLESectorEx(s_buffer, None, dl_OLEDirectory, t_SAT, t_SSAT, "RootEntry")
             if s_RootEntry == "" :
                 print "[-] Error - StructHWPHeader( RootEntry )"
-                return t_HWPHeader
+                return False
+            
+            self.s_RootEntry = s_RootEntry
             
             s_HWPHeader = StructOLE.fnStructOLESectorEx(s_buffer, s_RootEntry, dl_OLEDirectory, t_SAT, t_SSAT, "FileHeader")
             if s_HWPHeader == "" :
                 print "[-] Error - StructHWPHeader( FileHeader )"
-                return t_HWPHeader
+                return False
             
             t_HWPHeader = StructHWP.fnStructHWPHeader(s_HWPHeader)
             if t_HWPHeader == () :
                 print "[-] Error - fnStructHWPHeader()"
-                return t_HWPHeader
+                return False
+            
+            self.t_HWPHeader = t_HWPHeader
             
         except :
             print format_exc()
+            return False
             
-        return t_HWPHeader
+        return True
+    def fnExtractSSector(self, OLE, s_buffer):
+        l_SSector_Name = []
+        l_SSector_Data = []
+        
+        try :
+            
+            # Check Exception
+            if OLE.dl_OLEDirectory == [] :
+                print "[-] fnExtractSSector() : dl_OLEDirectory is Empty!"
+                return False
+            if OLE.t_SAT == () :
+                print "[-] fnExtractSSector() : t_SAT is Empty!"
+                return False
+            if OLE.t_SSAT == () :
+                print "[-] fnExtractSSector() : t_SSAT is Empty!"
+                return False
+            if self.s_RootEntry == "" :
+                print "[-] fnExtractSSector() : s_RootEntry is Empty!"
+                return False
+            
+            # Init
+            dl_OLEDirectory = OLE.dl_OLEDirectory
+            t_SAT = OLE.t_SAT
+            t_SSAT = OLE.t_SSAT
+            s_RootEntry = self.s_RootEntry
+            
+            StructOLE = CStructOLE()
+            UtilOLE = CUtilOLE()
+            
+            n_Cnt = 0
+            while n_Cnt < dl_OLEDirectory.__len__() :
+                if dl_OLEDirectory[n_Cnt][2] != 5 or dl_OLEDirectory[n_Cnt][12] >= 0x1000 :
+                    s_Data = s_buffer
+                    t_Table = t_SAT
+                    n_Size = SIZE_OF_SECTOR
+                elif dl_OLEDirectory[n_Cnt][2] != 5 and dl_OLEDirectory[n_Cnt][12] < 0x1000 :
+                    s_Data = s_RootEntry
+                    t_Table = t_SSAT
+                    n_Size = SIZE_OF_SHORT_SECTOR
+                
+                
+                s_SSector = StructOLE.fnStructOLESector(s_Data, t_Table, dl_OLEDirectory[n_Cnt][11], n_Size)
+                if s_SSector == "" :
+                    print "[-] Error - fnStructOLESector()"
+                    return False
+                    
+                l_SSector_Name.append( UtilOLE.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0]) )
+                l_SSector_Data.append( s_SSector )
+            
+                n_Cnt += 1
+            
+        except :
+            print format_exc()
+            return False
 
+        self.l_HWPSSector.append( l_SSector_Name )
+        self.l_HWPSSector.append( l_SSector_Data )
+
+        return True
+    
 class CStructHWP():
     def fnStructHWPHeader(self, s_HWPHeader):
         t_HWPHeader = ()
@@ -958,70 +1393,11 @@ class CMappedHWP(CStructHWP):
 class CExceptHWP(CStructHWP):
     pass
 
-RULE_HWPHEADER_NAME = ('Signature Version Property Reserved')
-RULE_HWPHEADER_PATTERN = '=32s2l216s'
-
-class CPrintOLE():
-    def fnPrintOLEHeader(self):
-        pass
-    def fnPrintOLEDirectory(self, dl_OLEDirectory):
-        
-        try :
-            UtilOLE = CUtilOLE()
-            
-            print "\t" + "=" * 130
-            print "\t" + "%-33s%-11s%-11s%-11s%-11s%-11s%-11s%-11s%-11s%-10s" % ("DirectoryName", "szName", "Type", "Color", "Left", "Right", "Root", "Flags", "SecID", "szStream")
-            print "\t" + "-" * 130
-            n_Cnt = 0
-            while n_Cnt < dl_OLEDirectory.__len__() :
-                if UtilOLE.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0]) == "" :
-                    n_Cnt +=1
-                    continue
-                
-                for n_Index in range( dl_OLEDirectory[n_Cnt].__len__() ) :
-                    if n_Index == 0 :
-                        print "\t" + "%-30s" % UtilOLE.fnExtractAlphaNumber(dl_OLEDirectory[n_Cnt][0]),
-                    elif n_Index == 7 or n_Index == 9 or n_Index == 10 or n_Index == 13:
-                        continue
-                    else :
-                        print "0x%08X" % dl_OLEDirectory[n_Cnt][n_Index],
-                
-                print ""
-                n_Cnt += 1
-            
-            print "\t" + "=" * 130 + "\n"
-            
-        except :
-            print format_exc()
-            return False
-        
-        return True
-        
-class CPrintOffice():
-    def fnPrintOfficeStream(self, dl_StreamOffset, dl_StreamName, dl_StreamSize):
-        
-        try :
-            l_Version = ["97", "2000", "2002", "2003", "2007"]
-            
-            print "\n\t\t\t" + "=" * 50
-            print "\t\t\t%4s%19s\t%10s\t%7s" % ("Index", "Member", "Offset", "Size")
-            print "\t\t\t" + "-" * 50
-            for n_Ver in range( dl_StreamOffset.__len__() ) :
-                print "\t\t\t[ Office%4s ]" % l_Version[ n_Ver ]
-                for n_Cnt in range( dl_StreamOffset[n_Ver].__len__() ) :
-                    print "\t\t\t%02X%22s\t0x%08X\t0x%08X" % (n_Cnt, dl_StreamName[n_Ver][n_Cnt], dl_StreamOffset[n_Ver][n_Cnt], dl_StreamSize[n_Ver][n_Cnt])
-            print "\t\t\t" + "=" * 50 + "\n"
-            
-        except :
-            print format_exc()
-            return False
-        
-        return True
-
-class CPrintHWP():
+class CPrintHWP(CStructHWP):
     pass
 
-
+RULE_HWPHEADER_NAME = ('Signature Version Property Reserved')
+RULE_HWPHEADER_PATTERN = '=32s2l216s'
 
 
 
