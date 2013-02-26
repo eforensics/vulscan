@@ -84,7 +84,6 @@ class CBuffer():
             print format_exc()
             return None
 
-
 class CCheck():
     def fnCheckEnableFile(self, s_fname):
         h_file = None
