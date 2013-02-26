@@ -213,7 +213,7 @@ class CScanFile():
         return True
     def fnScanHWP(self, OLE, s_fname, s_buffer):
         
-        print "- HWP :"
+        print "- HWP :",
         
         try :
             
