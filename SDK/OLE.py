@@ -281,7 +281,7 @@ class CStructOLE():
             UtilOLE = CUtilOLE()
             n_Index = UtilOLE.fnFindEntryIndex(dl_OLEDirectory, s_Entry)
             if n_Index == None :
-                print "[-] Error - FindEntryIndex( %s )" % s_Entry
+#                print "[-] Warning - FindEntryIndex( %s )" % s_Entry
                 return s_Sector
             
             n_EntryType = dl_OLEDirectory[n_Index][2]
@@ -527,9 +527,7 @@ class COffice():
     t_FibRgFcLcb2003 = ()
     t_FibRgFcLcb2007 = ()
     
-    l_StreamName = []
-    l_StreamOffset = []
-    l_StreamSize = []
+    dl_FibRgFcLcb_Index = []
     
     # Class Member Method
     def __init__(self):
@@ -567,9 +565,8 @@ class COffice():
                 return False
             
             # Scan Vulnerability
-            if not CExploitOffice.fnScanExploit() :
-                return
-
+            if not CExploitOffice.fnScanExploit(OLE, Office, s_buffer) :
+                return False
             
         except :
             print format_exc()
@@ -577,7 +574,6 @@ class COffice():
             
         return True
     def fnScanOfficeHeader(self, OLE, Office, s_buffer):
-        t_WordDoc = ()
         
         try :
     
@@ -643,7 +639,7 @@ class COffice():
             print format_exc()
             return False
     
-        return s_Data
+        return True
     
 class CStructOffice():
     def fnStructOfficeHeader(self, OLE, Office, s_buffer, dl_OLEDirectory, t_SAT, t_SSAT):
@@ -991,24 +987,54 @@ class CStructStream(CStructOffice):
         
         try :
             
-            # Get Structure List
-            self.fnStructStreamData(Office.l_FibRgFcLcbBlob, " ")
-            
-            # Parse Structure List
-            self.fnStructParseStream(OLE, Office, s_buffer)
+            if not self.fnStructStreamData(Office) : 
+                print "[-] Error - fnStructStreamData()"
+                return False
             
         except :
             print format_exc()
             return False
         
         return True
-    def fnStructStreamData(self, l_FibRgFcLcbBlob, s_Seperator):
-        pass
-    def fnStructParseStream(self, OLE, Office, s_buffer):
-        pass
-    
+    def fnStructStreamData(self, Office):
+        
+        try :
+            
+            MappedStream = CMappedStream()
+            dl_FibRgFcLcb_Index = MappedStream.fnMappedStreamIndex(Office.l_FibRgFcLcbBlob)
+            if dl_FibRgFcLcb_Index == [] :
+                print "[-] Error - fnMappedStreamIndex()"
+                return False
+            
+            Office.dl_FibRgFcLcb_Index = dl_FibRgFcLcb_Index
+            
+        except :
+            print format_exc()
+            return False
+        
+        return True
 class CMappedStream(CStructOffice):
-    pass
+    def fnMappedStreamIndex(self, l_FibRgFcLcbBlob):
+        dl_FibRgFcLcb_Index = []
+        
+        try :
+            
+            for l_FibRgFcLcb in l_FibRgFcLcbBlob :
+                l_FibRgFcLcb_Index = []
+                n_szIndex = 1
+                
+                while n_szIndex <= l_FibRgFcLcb.__len__() -1 : 
+                    if l_FibRgFcLcb[ n_szIndex ] !=  0 :
+                        l_FibRgFcLcb_Index.append( n_szIndex -1 )
+                    n_szIndex += 2
+            
+                dl_FibRgFcLcb_Index.append( l_FibRgFcLcb_Index )
+            
+        except :
+            print format_exc()
+            return dl_FibRgFcLcb_Index
+        
+        return dl_FibRgFcLcb_Index
 
 class CUtilOffice(CStructOffice):
     def fnUtilFlag(self, n_Flag):
@@ -1024,7 +1050,7 @@ class CUtilOffice(CStructOffice):
                 return s_Algorithm
             
             # Get Obfuscated Bit
-            n_BitOffset = 15
+            b_BitOffset = 15
             b_Obfuscated = CBuffer.fnBitParse(n_Flag, b_BitOffset, 1)
             if b_Obfuscated == None :
                 print "[-] Error - fnBitParse() : Obfuscated"
@@ -1045,12 +1071,12 @@ class CUtilOffice(CStructOffice):
             return s_Algorithm
         
         return s_Algorithm
-    def fnUtilTable(self, n_Flag):
+    def fnUtilTable(self, n_Flag, b_BitOffset, b_Cnt):
         s_Table = ""
         
         try :
             
-            b_Table = CBuffer.fnBitParse(n_Flag, 9, 1)
+            b_Table = CBuffer.fnBitParse(n_Flag, b_BitOffset, b_Cnt)
             if b_Table == None :
                 print "[-] Error - fnBitParse() : TableName"
                 return s_Table
@@ -1083,7 +1109,7 @@ class CExceptOffice(CStructOffice):
             
             for n_Ver in enumerate(l_FIBMagicNumber) :
                 if t_FibBase.wIdent == n_Ver[1] :
-                    print "\t[*] Version By Fib MagicNumber : %s" % l_VersionByFIBMagicNumber[ n_Ver[0] ]
+                    print "\t[*] Version : %s ( By Fib MagicNumber )" % l_VersionByFIBMagicNumber[ n_Ver[0] ]
             
         except :
             print format_exc()
@@ -1131,26 +1157,39 @@ class CExceptOffice(CStructOffice):
         return True
 
 class CPrintOffice(CStructOffice):
-    def fnPrintOfficeStream(self, dl_StreamOffset, dl_StreamName, dl_StreamSize):
+    def fnPrintOfficeStream(self, l_FibRgFcLcbBlob, dl_FibRgFcLcb_Index):
         
         try :
-            l_Version = ["97", "2000", "2002", "2003", "2007"]
             
-            print "\n\t\t\t" + "=" * 50
-            print "\t\t\t%4s%19s\t%10s\t%7s" % ("Index", "Member", "Offset", "Size")
-            print "\t\t\t" + "-" * 50
-            for n_Ver in range( dl_StreamOffset.__len__() ) :
-                print "\t\t\t[ Office%4s ]" % l_Version[ n_Ver ]
-                for n_Cnt in range( dl_StreamOffset[n_Ver].__len__() ) :
-                    print "\t\t\t%02X%22s\t0x%08X\t0x%08X" % (n_Cnt, dl_StreamName[n_Ver][n_Cnt], dl_StreamOffset[n_Ver][n_Cnt], dl_StreamSize[n_Ver][n_Cnt])
+            print "\n\t" + "=" * 50
+            print "\t%4s%19s\t%10s\t%7s" % ("Index", "Member", "Offset", "Size")
+            print "\t" + "-" * 50
+            
+            for l_Index in enumerate( dl_FibRgFcLcb_Index ) :
+                l_FibRgFcLcb = l_FibRgFcLcbBlob[ l_Index[0] ]
+                
+                print "\t[ Office%4s ]" % l_Version[ l_Index[0] ]
+                
+                for n_Index in l_Index[1] :
+                    s_Name = eval( "RULE_FIBFCLCB_NAME_" + l_Version[ l_Index[0] ] ).split(" ")[n_Index]
+                    n_Offset = l_FibRgFcLcb[n_Index]
+                    n_Size = l_FibRgFcLcb[n_Index+1]
+                    
+                    print "\t%02X%22s\t0x%08X\t0x%08X" % (n_Index, s_Name, n_Offset, n_Size)
+            
             print "\t\t\t" + "=" * 50 + "\n"
-            
+        
+        except IndexError :
+            print hex(n_Index)
+        
         except :
             print format_exc()
             return False
         
         return True
 
+
+l_Version = ["97", "2000", "2002", "2003", "2007"]
 
 SIZE_OF_FIBBASE = 0x20            # 32Bytes
 RULE_FIBBASE_NAME = ('wIdent nFib unused lid pnNext Flag nFibBack lKey envr envtFlag reserved3 reserved4 reserved5 reserved6')
