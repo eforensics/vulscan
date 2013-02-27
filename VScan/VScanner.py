@@ -1,5 +1,5 @@
 # External Module
-import os
+import os, sys
 from traceback import format_exc
 
 # SDK Module
@@ -10,7 +10,7 @@ try :
     from PE import *
     from Common import CFile
 except :
-    print "[-] Failed - File Import ( Format Module )"
+    print "[ImportError] Do not Found SDK Modules"
     exit(-1)
 
 # Internal Import Module
