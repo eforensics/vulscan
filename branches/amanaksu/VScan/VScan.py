@@ -1,5 +1,5 @@
 # External Module
-import sys
+import os, sys
 from traceback import format_exc
 from optparse import OptionParser, OptionGroup
 
@@ -7,9 +7,16 @@ from optparse import OptionParser, OptionGroup
 
 # Internal Module
 try :
+    s_abs_curdir = os.path.abspath( os.path.curdir )
+    s_path_SDK = s_abs_curdir + "\\SDK"
+    s_path_Exploit = s_abs_curdir + "\\Exploit"
+    
+    sys.path.append(s_path_SDK)
+    sys.path.append(s_path_Exploit)
+    
     from VScanner import CScan
 except :
-    print "[-] Failed - File Import ( VScanner.py )"
+    print "[ImportError] Put in Modules in the VScan.py File Folder"
     exit(-1)
 
 
@@ -40,7 +47,6 @@ class CInit():
         print "  VScan ver 1.0                   Copyright (c) 2013, Project1"
         print "-----------------------------------------------------------------"
         print ""
-    
     def GetOptions(self):
         self.PrintLog() 
             
