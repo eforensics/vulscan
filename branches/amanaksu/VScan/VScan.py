@@ -3,8 +3,6 @@ import os, sys
 from traceback import format_exc
 from optparse import OptionParser, OptionGroup
 
-# SDK Module
-
 # Internal Module
 try :
     s_abs_curdir = os.path.abspath( os.path.curdir )

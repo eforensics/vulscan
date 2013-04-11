@@ -2,6 +2,7 @@
 import os, sys
 from traceback import format_exc
 
+# Internal Import Module
 # SDK Module
 try :
     from PDF import *
@@ -13,8 +14,14 @@ except :
     print "[ImportError] Do not Found SDK Modules"
     exit(-1)
 
-# Internal Import Module
-
+# Exploit Module
+try :   
+    from ExploitHWP import CExploitHWP
+    from ExploitOffice import CExploitOffice
+    from ExploitRTF import CExploitRTF
+    from ExploitPDF import CExploitPDF
+except :
+    print "[-] Warning - Do not Scan Exploit!"
 
 
 class CScan():
@@ -32,35 +39,44 @@ class CScan():
     
     @classmethod
     def fnScan(cls, options):
-        
+        # [IN]     options
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE] FALSE
+        #    - [ERROR] None
         print "[+] Start"
         
         l_Files = []
         
         try :
-            # Step 1. Create File List
+#            print "Step 1. Create File List"
             Scan = CScan()
             l_Files = Scan.fnCreateFileList(options)
-            if l_Files == [] :
+            if l_Files == None :
                 print "[-] Error - fnCreateFileList()"
                 return False
+            elif l_Files == [] :
+                print "[-] Failure - fnCreateFileList()"
+                return False
             
-            # Step 2. Format Scanning
+#            print "Step 2. Format Scanning"
             for s_fname in l_Files :
                 s_format = Scan.fnIsScannable(s_fname)
-                eval( "cls.l_%s" % s_format ).append( s_fname )
+                if s_format in cls.l_Format :
+                    eval( "cls.l_%s" % s_format ).append( s_fname )
             
-            # Step 3. Mapped Scan
+#            print "Step 3. Mapped Scan"
             ScanFile = CScanFile()
             for s_format in cls.l_Known :
                 if eval( "cls.l_%s" % s_format ) == [] :
                     continue
-                if not ScanFile.fnScanFileList(s_format, eval( "cls.l_%s" % s_format )) :
+                b_Ret = ScanFile.fnScanFileList(s_format, options, eval( "cls.l_%s" % s_format ))
+                if b_Ret == None :
                     print "[-] Error - fnScanFileList( %s )" % s_format
             
             # Step 4. Move Files ( .bin, .txt, .log )
-            
-            
+            if options.classify == True :
+                print "classify files by format"
             
         except :
             print format_exc()
@@ -68,6 +84,11 @@ class CScan():
         
         return True
     def fnCreateFileList(self, options):
+        # [IN]    options
+        # [OUT]   l_Files
+        #    - [SUCCESS] file list in directory
+        #    - [FAILURE] []
+        #    - [ERROR] None
         l_Files = []
         l_tmpFiles = []
         
@@ -85,9 +106,15 @@ class CScan():
                 
         except :
             print format_exc()
+            return None
         
         return l_Files
     def fnIsScannable(self, s_fname):
+        # [IN]    s_fname
+        # [OUT]   s_format
+        #    - [SUCCESS] file format name
+        #    - [FAILURE] "unknown"
+        #    - [ERROR] "unknown"
         s_flagbuffer = None        
         s_format = "unknown"
         
@@ -106,6 +133,10 @@ class CScan():
         
         return s_format
     def fnIsFormat(self, s_buffer):
+        # [IN]    s_buffer
+        # [OUT]   s_format
+        #    - [SUCCESS] file format
+        #    - [FAILURE/ERROR] None
         s_format = None
 
         try :
@@ -127,34 +158,74 @@ class CScan():
 class CScanFile():
     s_FileVersion = ""
     
-    def fnScanFileList(self, s_format, l_files):
-        
+    def fnScanFileList(self, s_format, options, l_files):
+        # [IN]    s_format
+        # [IN]    options
+        # [IN]    l_files
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE/ERROR] None 
         try :
-            
+        
             Scan = CScan()
             for s_fname in l_files :
                 if not eval( "self.fnScan%s" % s_format )( s_fname ) :
                     Scan.l_Except.append( s_fname )
+                
+                if options.log == True :
+                    print "saved file scan log"
+                    
+                if options.extract == True :
+                    print "extracted data"
             
         except :
             print format_exc()
+            return None
             
         return True
     def fnScanPDF(self, s_fname):
-        
+        # [IN]    s_fname
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE] False
+        #    - [ERROR] None
         print "[+] PDF :",
         
         try :
-            
             print s_fname
-            return True
+            
+            PDF = CPDF()
+            PDF.s_fname = s_fname
+            
+            # Scan PDF Structure
+            s_buffer = CFile.fnReadFile(s_fname)
+            if not PDF.fnScanPDF(PDF, s_buffer) :
+                print "[-] Error - fnScanPDF()"
+                return False
+            
+            # Scan PDF Exploit
+            #    - JavaScript 
+            if PDF.l_JSIndex != [] :
+                ExploitPDF = CExploitPDF()
+                if not ExploitPDF.fnScanExploit(PDF) :
+                    print "[-] Error - fnScanExploit()"
+                    return False
+            #    - Another Check ( Ex : Embedded PE, etc... )
+            if PDF.l_JSIndex_Sus != [] :
+                print "Another Suspicious Stream"
+            # Print PDF
         
         except :
             print format_exc()
+            return None
             
         return True
     def fnScanOLE(self, s_fname):
-        
+        # [IN]    s_fname
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE] False
+        #    - [ERROR] None
         print "[+] OLE",
         
         try :
@@ -163,8 +234,6 @@ class CScanFile():
             
             # for OLE's Function Instance
             OLE = COLE()
-            HWP = CHWP()
-            Office = COffice()
             
             s_buffer = CFile.fnReadFile( s_fname )
             if not OLE.fnScanOLE(OLE, s_buffer) :
@@ -174,7 +243,11 @@ class CScanFile():
             s_format = OLE.fnIsSubFormat( OLE )
             if s_format != "" :
                 eval( "Scan.l_OLE_%s" % s_format ).append( s_fname )
-                eval( "self.fnScan%s" % s_format )(OLE, s_fname, s_buffer)
+                b_Ret = eval( "self.fnScan%s" % s_format )(OLE, s_fname, s_buffer) 
+                if b_Ret == False :
+                    print "[-] Failure - Scan%s()" % s_format
+                elif b_Ret == None :
+                    print "[-] Error - Scan%s()" % s_format
                 
             else :
                 return False
@@ -189,53 +262,69 @@ class CScanFile():
             
         return True
     def fnScanOffice(self, OLE, s_fname, s_buffer):
-        
+        # [IN]    s_fname
+        # [IN]    s_buffer
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE] False
+        #    - [ERROR] None
         print "- Office :",
         
         try :
             
             print s_fname
             
-            Office = COffice()
-            
             # Scan Office Structure
+            Office = COffice()
             if not Office.fnScanOffice( OLE, Office, s_buffer ) :
                 print "[-] Error - fnScanOffice()"
                 return False
             
-            # Saved File Version
+            # Scan Office Exploit
+            ExploitOffice = CExploitOffice()
+            if not ExploitOffice.fnScanExploit(OLE, Office, s_buffer) :
+                return False
             
-            return True
-        
         except:
             print format_exc()
+            return None
             
         return True
     def fnScanHWP(self, OLE, s_fname, s_buffer):
-        
+        # [IN]    s_fname
+        # [IN]    s_buffer
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE] False
+        #    - [ERROR] None
         print "- HWP :",
         
         try :
             
             print s_fname
             
-            HWP = CHWP()
-            
             # Scan HWP Structure
+            HWP = CHWP()
             if not HWP.fnScanHWP( OLE, s_buffer ) :
                 print "[-] Error - fnScanHWP()"
                 return False
             
-            # Saved File Version
+            # Scan HWP Exploit
+            ExploitHWP = CExploitHWP()
+            if not ExploitHWP.fnScanExploit( HWP.l_HWPSSector ) :
+                print "[-] Error - fnScanExploit()"
+                return False
             
-            return True
-        
         except :
             print format_exc()
             
         return True
     def fnScanRTF(self, s_fname):
-        
+        # [IN]    s_fname
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE] False
+        #    - [ERROR] None
         print "[+] RTF :",
         
         try :
@@ -248,7 +337,11 @@ class CScanFile():
             
         return True        
     def fnScanPE(self, s_fname):
-        
+        # [IN]    s_fname
+        # [OUT]
+        #    - [SUCCESS] True
+        #    - [FAILURE] False
+        #    - [ERROR] None
         print "[+] PE :",
         
         try :
@@ -261,48 +354,3 @@ class CScanFile():
             
         return True
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
