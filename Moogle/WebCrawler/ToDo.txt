@@ -1,0 +1,10 @@
+ToDo...
+
+1. Run
+	prompt > WebCrawler.py [WebCrawler.py Path]
+
+2. Add Category
+	Category.txt file in URL Directory ( WebCrawler.py's Sub-Directory ) add Category file name.
+
+3. Add URL
+	CategoryName.txt ( ex : AntiVirus.txt.. ) in same directory that Category.txt exist add URLs.
