@@ -7,7 +7,12 @@ from traceback import format_exc
 
 class CFile():
     @classmethod
-    def fnCreateFile(cls, s_fname, s_privilege):        
+    def fnCreateFile(cls, s_fname, s_privilege):     
+        # [IN]    s_fname
+        # [IN]    s_privilege
+        # [OUT]   p_file
+        #    - [SUCCESS] file pointer
+        #    - [FAILURE/ERROR] None
         p_file = None
         
         try :
@@ -23,6 +28,10 @@ class CFile():
         return p_file
     @classmethod
     def fnReadFile(cls, s_fname):
+        # [IN]    s_fname
+        # [OUT]   s_file
+        #    - [SUCCESS] file buffer
+        #    - [FAILURE/ERROR] None
         s_file = None
         
         try :
@@ -39,6 +48,12 @@ class CFile():
         return s_file
     @classmethod
     def fnWriteFile(cls, s_fname, s_file):
+        # [IN]    s_fname
+        # [IN]    s_file
+        # [OUT]   
+        #    - [SUCCESS] saved file
+        #    - [FAILURE] don't saved file
+        #    - [ERROR] False
         try :
             with open(s_fname, "wb") as p_file :
                 try :
@@ -54,7 +69,12 @@ class CFile():
 class CBuffer():
     @classmethod
     def fnReadData(cls, s_buffer, n_Position, n_Size):
-        
+        # [IN]    s_buffer
+        # [IN]    n_Position
+        # [IN]    n_Size
+        # [OUT]
+        #    - [SUCCESS] data referred n_Size
+        #    - [FAILURE/ERROR] None
         try :
             if n_Size == 1 :
                 s_Sig = "<B"
@@ -72,25 +92,6 @@ class CBuffer():
         except :
             print format_exc()
             return None
-
-class CCheck():
-    def fnCheckEnableFile(self, s_fname):
-        h_file = None
-        
-        try :
-            h_file = CFile.fnCreateFile(s_fname, "rb")
-            if h_file != None :
-                return True
-                
-        except IOError, error:
-            print error
-            
-        except :
-            print format_exc()
-            
-        return False
-
-
 
 
 

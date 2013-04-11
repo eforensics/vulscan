@@ -1,4 +1,5 @@
 # External Import
+import os, sys
 from struct import error, unpack
 from traceback import format_exc
 from collections import namedtuple
@@ -6,17 +7,10 @@ from string import letters, digits
 
 # Internal Import
 try :
-    from Common import CBuffer
+    from CommonSDK import CBuffer
 except :
     print "[-] Error - Internal Import "
     exit(-1)
-
-try :
-    from ExploitHWP import CExploitHWP
-    from ExploitOffice import CExploitOffice
-    from ExploitRTF import CExploitRTF
-except :
-    print "[-] Warning - Do not Scan Exploit!"
 
 
 class COLE():
@@ -564,10 +558,6 @@ class COffice():
                 print "[-] Error - fnStructOfficeStream()"
                 return False
             
-            # Scan Vulnerability
-            if not CExploitOffice.fnScanExploit(OLE, Office, s_buffer) :
-                return False
-            
         except :
             print format_exc()
             return False
@@ -1013,6 +1003,7 @@ class CStructStream(CStructOffice):
             return False
         
         return True
+    
 class CMappedStream(CStructOffice):
     def fnMappedStreamIndex(self, l_FibRgFcLcbBlob):
         dl_FibRgFcLcb_Index = []
@@ -1245,11 +1236,6 @@ class CHWP():
             # Extract HWP's remind Sectors
             if not self.fnExtractSSector(OLE, s_buffer) :
                 print "[-] fnExtractSSector()"
-                return False
-            
-            # Scan Vulnerability            
-            if not CExploitHWP.fnScanExploit(self.l_HWPSSector) :
-                print "[-] ScanExploit()"
                 return False
             
         except :
